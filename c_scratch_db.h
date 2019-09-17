@@ -30,10 +30,14 @@ typedef std::fstream file_descriptor_t;
 
 /****************************************** DEFINITIONS ******************************************/
 
-#define PAGE_SIZE 16384 // page size is 16kB ; 1kB = 1024 Bytes
+// #define PAGE_SIZE 16384 // page size is 16kB ; 1kB = 1024 Bytes
 #define F_NAME_LEN 200 // maximum file name length
 #define PG_RECORD_UNUSED 65535
-#define SIG_SIZE 5
+
+/******************************************* CONSTANTS *******************************************/
+
+const uint16_t PAGE_SIZE = 16384; // page size is 16kB ; 1kB = 1024 Bytes
+const uint16_t SIG_SIZE = 5;
 
 /************************************** FUNCTION PROTOTYPES **************************************/
 

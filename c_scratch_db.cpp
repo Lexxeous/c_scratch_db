@@ -25,20 +25,20 @@ struct page_t {
   BYTE data[PAGE_SIZE - 2*sizeof(uint16_t)];  // includes data + directory
   uint16_t dir_size; // E
   uint16_t free_bytes; // F
-};
+}__attribute__((packed));
 
 // Struct for the header page (page 0).
 // Provides easy access to the signature, number of pages in the file, and pads for the rest of the page.
 struct header_page_t {
   char sig[SIG_SIZE]; // "EAGL0"
-  uint16_t num_pages; // N
+  uint16_t num_pages; // NN
   BYTE rest[PAGE_SIZE - SIG_SIZE - sizeof(uint16_t)];
-};
+}__attribute__((packed));
 
 /********************************************* MACROS ********************************************/
 
-// #define START_PAGE_DIR(page) ((BYTE*)&page->dir_size) - (page->dir_size)
-// #define END_LAST_REC(page) ((BYTE*)&page->dir_size) - (page->dir_size) - (page->free_bytes)
+#define START_PAGE_DIR(page) ((BYTE*)&page->dir_size) - (page->dir_size)
+#define END_LAST_REC(page) ((BYTE*)&page->dir_size) - (page->dir_size) - (page->free_bytes)
 
 /************************************ FUNCTION IMPLEMENTATIONS ***********************************/
 
@@ -52,38 +52,23 @@ namespace Page_file
 			exit(EXIT_FAILURE);
 		}
 
-
 		header_page_t h_page; // define the header page datatype
-		strncpy(h_page.sig, "EAGL0", 5);
+		strncpy(h_page.sig, "EAGL9", SIG_SIZE);
 		h_page.num_pages = fsize;
+		bzero(h_page.rest, PAGE_SIZE - SIG_SIZE - sizeof(uint16_t));
 
-
-		std::ofstream init_pages_file; // define the pages initialization file
-		init_pages_file.open(fname); // open the pages initialization file
+		std::fstream init_pages_file; // define the pages initialization file
+		init_pages_file.open(fname, std::ios::out | std::ios::binary); // open the pages initialization file
+		init_pages_file.write((char*) &h_page, sizeof(h_page));
 		
-
-		// Determine the number of zeros left for the header page
-		uint16_t h_init = (uint16_t)PAGE_SIZE - (uint16_t)SIG_SIZE - sizeof(uint16_t);
-
-
-		// Initialize the rest of the header page
-		init_pages_file << h_page.sig << h_page.num_pages;
-		for(uint16_t h = 0; h < h_init; h++)
-		{
-			init_pages_file << '0';
-		}
-
 		// Initialize the data page(s)
-		for(uint16_t d = 0; d < fsize-1; d++)
+		for(uint16_t data_pages = 1; data_pages < fsize; data_pages++)
 		{
-			page_t pg;
-			pg.dir_size = 0;
-			pg.free_bytes = (PAGE_SIZE - (2*sizeof(uint16_t)));
-			for(uint16_t i = 0; i < sizeof(pg.data); i++)
-			{
-				init_pages_file << '0';
-			}
-			init_pages_file << pg.dir_size << pg.free_bytes;
+			page_t data_page;
+			bzero(data_page.data, PAGE_SIZE - (2*sizeof(uint16_t)));
+			data_page.dir_size = 0;
+			data_page.free_bytes = PAGE_SIZE - (2*sizeof(uint16_t));
+			init_pages_file.write((char*) &data_page, sizeof(data_page));
 		}
 
 		init_pages_file.close(); // close the pages initialization file
@@ -98,7 +83,12 @@ namespace Page_file
 
 	void pgf_read(file_descriptor_t &pfile, int page_id, void* page_buf)
 	{
+		// uint16_t db_pg_start = ((PAGE_SIZE * page_id));
+		// pfile.seekg(db_pg_start, std::ios_base::beg);
 		
+		// pfile.fail()
+		// pfile.bad()
+		// pfile.read(reinterpret_cast<char*>(page_buf), PAGE_SIZE);
 	}
 } // End of "Page_file" namespace
 
