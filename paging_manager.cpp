@@ -1,14 +1,14 @@
 /**************************************************************************************************
-* Filename:   c_scratch_db.h
+* Filename:   paging_manager.cpp
 * Author:     Jonathan Alexander Gibson (jagibson44@students.tntech.edu)
 * Copyright:	Tennessee Technological University (TTU)
 * Disclaimer: This code is presented "as is" without any guarantees.
-* Details:    Defines the API for the corresponding DB implementation.
+* Details:    Defines the API for the corresponding DB paging implementation.
 **************************************************************************************************/
 
 /****************************************** HEADER FILES *****************************************/
 
-#include "c_scratch_db.h"
+#include "paging_manager.h"
 
 /************************************** IMPLEMENT STRUCTURES *************************************/
 
@@ -75,88 +75,126 @@ namespace Page_file
 	}
 
 
-	// void pgf_write(file_descriptor_t pfile, int page_id, void *page_buf)
-	// {
-		
-	// }
+	void pgf_write(file_descriptor_t &pfile, int page_id, void *page_buf)
+	{
+		int16_t db_pg_start = ((PAGE_SIZE * page_id));
+		pfile.seekg(db_pg_start, std::ios_base::beg);
+		pfile.write(reinterpret_cast<char*>(page_buf), PAGE_SIZE);
+	}
 
 
 	void pgf_read(file_descriptor_t &pfile, int page_id, void* page_buf)
 	{
-		// uint16_t db_pg_start = ((PAGE_SIZE * page_id));
-		// pfile.seekg(db_pg_start, std::ios_base::beg);
-		
+		// Do error checking
 		// pfile.fail()
 		// pfile.bad()
-		// pfile.read(reinterpret_cast<char*>(page_buf), PAGE_SIZE);
+
+		uint16_t db_pg_start = ((PAGE_SIZE * page_id));
+		pfile.seekg(db_pg_start, std::ios_base::beg);
+		pfile.read(reinterpret_cast<char*>(page_buf), PAGE_SIZE);
+
+		// Check the number of free bytes (F) and the directory size (E)
+		// page_t* r_page = (page_t*)page_buf;
+		// std::cout << "Free Bytes: " << r_page->free_bytes << std::endl;
+		// std::cout << "Dir Size: " << r_page->dir_size << std::endl;
+
+		// Write the entire page to a separate file for data checking
+		// std::fstream buf_file;
+		// buf_file.open("page_buf.dat", std::ios::out | std::ios::binary);
+		// buf_file.write(reinterpret_cast<char*>(page_buf), PAGE_SIZE);
+		// buf_file.close();
+	}
+
+
+	void print(char fname[F_NAME_LEN])
+	{
+		
 	}
 } // End of "Page_file" namespace
 
 
-// namespace Page
-// {
-// 	void pg_compact(void *page_buf, uint16_t num_bytes, BYTE *start)
-// 	{
+namespace Page
+{
+	void pg_compact(void *page_buf, uint16_t num_bytes, BYTE *start)
+	{
 		
-// 	}
+	}
 
 
-	// void pg_expand(void *page_buf, uint16_t num_bytes, BYTE *start)
-	// {
+	void pg_expand(void *page_buf, uint16_t num_bytes, BYTE *start)
+	{
 		
-	// }
+	}
 
 
-	// void pg_add_record(void *page, void *record)
-	// {
+	void pg_add_record(void *page, void *record)
+	{
 		
-	// }
+	}
 
 
-	// void pg_del_record(void *page, unsigned short rec_id)
-	// {
+	void pg_del_record(void *page, unsigned short rec_id)
+	{
 		
-	// }
+	}
 
 
-	// int pg_modify_record(void *page, void *record, BYTE rec_id)
-	// {
+	int pg_modify_record(void *page, void *record, BYTE rec_id)
+	{
+		return 0;
+	}
+
+
+	void rec_packint(std::string &buf, int val)
+	{
+		uint16_t old_size = buf.size();
+		buf.resize(old_size + sizeof(uint16_t) + sizeof(int)); // 2 for length 'L', 2 for type 't', & 4 for int data 'd'
+
+		BYTE* t_ptr = ((BYTE*)buf.data()) + sizeof(uint16_t); // move a pointer to the beginning of the type field 't'
+		*t_ptr = 4;
+
+		BYTE* d_ptr = ((BYTE*)buf.data() + sizeof(uint16_t) + sizeof(uint16_t)); // move a pointer to the beginning of the data field 'd'
+		BYTE* arr = (BYTE*)&val; // assign each of the 4 bytes of <val> to an array of bytes
+		for(int i = 0 ; i < 4; i++) {
+			d_ptr[i] = arr[i]; // place the array of bytes one by ones
+		}
+
+		// Check the integer value that was passed in
+		// std::cout << *(int*)arr << std::endl;
+
+		// Check the current contents of the string buffer
+		// for(int i =0 ; i < buf.size(); i++) {
+		// 	std::cout << (int)buf[i] << std::endl;
+		// }
+	}
+
+
+	void rec_packstr(std::string &buf, const std::string &str)
+	{
 		
-	// }
+	}
 
 
-	// void rec_packint(std::string &buf, int val)
-	// {
+	int rec_upackint(void *buf, unsigned short &next)
+	{
+		return 0;
+	}
+
+
+	int rec_upackstr(void *buf, unsigned short &next, std::string val)
+	{
+		return 0;
+	}
+
+
+	void rec_finish(std::string &buf)
+	{
 		
-	// }
+	}
 
 
-	// void rec_packstr(std::string &buf, const std::string &str)
-	// {
-		
-	// }
-
-
-	// int rec_upackint(void *buf, unsigned short &next)
-	// {
-		
-	// }
-
-
-	// int rec_upackstr(void *buf, unsigned short &next, std::string val)
-	// {
-		
-	// }
-
-
-	// void rec_finish(std::string &buf)
-	// {
-		
-	// }
-
-
-	// void rec_begin(std::string &buf, unsigned short &next)
-	// {
-		
-	// }
-// }
+	void rec_begin(std::string &buf)
+	{
+		buf.resize(sizeof(uint16_t)); // start the record buffer by creating enough space for 'L'
+	}
+}

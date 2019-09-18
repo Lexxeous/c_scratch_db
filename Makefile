@@ -1,25 +1,26 @@
 # Set defualt parameters
 db_file ?= "test_db.dat"
-db_exec ?= "db"
+buf_file ?= "page_buf.dat"
+db_exec ?= "driver"
 test_exec ?= "test"
 
-run: db
-	./$(db_exec) $(db_file) # run db executable
+run: comp
+	./$(db_exec) $(db_file) # run "driver" executable
 
-db:
-	g++ -o $(db_exec) db.cpp c_scratch_db.cpp # compile and link into a "db" executable
+comp:
+	g++ -o $(db_exec) driver.cpp paging_manager.cpp # compile and link into a "driver" executable
 
 clean:
-	rm $(db_exec) $(test_exec) $(db_file)
+	rm $(db_file) $(buf_file) $(db_exec) $(test_exec)
 
 del:
 	rm -r a.out*
 
-# debug: db
+# debug: comp
 # 	lldb $(db_exec) $(db_file)
 
 test: test_db
 	./$(test_exec)
 
 test_db:
-	g++ -o $(test_exec) test.cpp c_scratch_db.cpp
+	g++ -o $(test_exec) test.cpp paging_manager.cpp
