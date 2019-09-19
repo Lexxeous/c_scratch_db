@@ -17,12 +17,12 @@ int main(int argc, char* argv[])
 	Page_file::pgf_format(test_db_name, num_pages);
 
 	/*********************************** TEST THE pgf_read FUNCTION ***********************************/
-	void* pg_buf;
-	pg_buf = calloc(PAGE_SIZE, sizeof(char));
-	std::fstream pfile; // define the pages file for reading
-	pfile.open(test_db_name); // open the pages file
-	Page_file::pgf_read(pfile, 1, pg_buf);
-	pfile.close(); // close the pages file
+	// void* pg_buf;
+	// pg_buf = calloc(PAGE_SIZE, sizeof(char));
+	// std::fstream pfile; // define the pages file for reading
+	// pfile.open(test_db_name); // open the pages file
+	// Page_file::pgf_read(pfile, 1, pg_buf);
+	// pfile.close(); // close the pages file
 
 	/************************************* SET UP RECORD #1 TO ADD ************************************/
 
@@ -33,8 +33,8 @@ int main(int argc, char* argv[])
 	int addr_1_num = 140;
 
 	/* Create a reference string for one unit of string data for record 1 */
-	std::string const_ref_s = "Upper Station Camp Creek Road"; // 29 characters without null terminator '\0';
-	std::string &addr_1_str = const_ref_s;
+	std::string const_ref_s_1 = "Upper Station Camp Creek Road"; // 29 characters without null terminator '\0';
+	std::string &addr_str_1 = const_ref_s_1;
 
 	/* Create the reference value for the record's number, for which to be added */
 	uint16_t ref_page_num_1 = 1;
@@ -42,8 +42,8 @@ int main(int argc, char* argv[])
 
 	/* Setup and add record 1 */
 	Page::rec_begin(s_1);
-	Page::rec_packint(s_1, addr_1_num);
-	Page::rec_packstr(s_1, addr_1_str);
+	// Page::rec_packint(s_1, addr_1_num);
+	Page::rec_packstr(s_1, addr_str_1);
 	Page::rec_finish(s_1);
 	Page::pg_add_record(page_num_1, (void*)s_1.data());
 

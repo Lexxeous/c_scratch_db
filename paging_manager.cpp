@@ -130,9 +130,46 @@ namespace Page
 	void pg_add_record(void* page, void* record)
 	{
 		record_t* rec = (record_t*)record;
+		uint16_t page_num = *(uint16_t*)page;
 
 		std::cout << "Page number should be 1: " << *(uint16_t*)page << std::endl;
 		std::cout << "Record Length should be 48: " << rec->length << std::endl;
+
+		void* page_buf; // define the page buffer
+		page_buf = calloc(PAGE_SIZE, sizeof(char));
+		std::fstream pfile; // define the DB file for reading and writing
+		pfile.open("test_db.dat"); // open the pages file
+		Page_file::pgf_read(pfile, page_num, page_buf);
+
+		page_t* edit_page = (page_t*)page_buf;
+		BYTE* add_rec_ptr = END_LAST_REC(edit_page);
+
+		if(edit_page->free_bytes >= rec->length) { // if there is enough room for the record to be added
+			memcpy(add_rec_ptr, rec, rec->length); // append/copy the record to the end of the current set of page records
+		}
+		else {
+			printf("Not enough space for this record on page %hi.\n",page_num);
+		}
+
+		edit_page->dir_size += sizeof(uint16_t); // update E
+		edit_page->free_bytes = edit_page->free_bytes - rec->length - (uint16_t)sizeof(uint16_t); // update F
+
+		/* Update the record directory for the newly added record */
+		uint16_t* dir_ptr = START_PAGE_DIR(edit_page);
+		std::vector<uint16_t>* dir_vec = new std::vector<uint16_t>(edit_page->dir_size);
+		uint16_t* end_of_recs = END_LAST_REC(edit_page);
+		uint16_t rec_offset = end_of_recs - rec->length;
+		dir_vec.push_back(rec_offset);
+		memcpy(dir_ptr, dir_vec, dir_vec.size());
+		delete dir_vec;
+
+		/* Output the currently read page to check for changes */
+		std::fstream buf_file;
+		buf_file.open("page_buf.dat", std::ios::out | std::ios::binary);
+		buf_file.write(reinterpret_cast<char*>(edit_page), PAGE_SIZE);
+		buf_file.close();
+				
+		pfile.close(); // close the pages file
 	}
 
 
@@ -158,14 +195,15 @@ namespace Page
 
 		BYTE* d_ptr = ((BYTE*)buf.data() + sizeof(uint16_t) + sizeof(uint16_t)); // move a pointer to the beginning of the data field 'd'
 		BYTE* arr = (BYTE*)&val; // assign each of the 4 bytes of <val> to an array of bytes
-		for(int i = 0 ; i < 4; i++) {
-			d_ptr[i] = arr[i]; // place the array of bytes one by ones
-		}
+		memcpy(d_ptr, arr, sizeof(int));
+		// for(int i = 0 ; i < 4; i++) {
+		// 	d_ptr[i] = arr[i]; // place the array of bytes one by one
+		// }
 
 		/* Check the integer value that was passed in */
 		// std::cout << *(int*)arr << std::endl;
 
-		/* Check the current contents of the string buffer */
+		/* Check the current contents of the buffer */
 		// for(int i = 0 ; i < buf.size(); i++) {
 		// 	std::cout << (int)buf[i] << std::endl;
 		// }
