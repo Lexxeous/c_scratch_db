@@ -153,15 +153,23 @@ namespace Page
 
 		edit_page->dir_size += sizeof(uint16_t); // update E
 		edit_page->free_bytes = edit_page->free_bytes - rec->length - (uint16_t)sizeof(uint16_t); // update F
+		uint16_t old_num_dir_entries = (((edit_page->dir_size)/2) - 1);
+		uint16_t new_num_dir_entires = old_num_dir_entries + 1;
+
 
 		/* Update the record directory for the newly added record */
-		// uint16_t* dir_ptr = START_PAGE_DIR(edit_page);
-		// std::vector<uint16_t>* dir_vec = new std::vector<uint16_t>(edit_page->dir_size);
-		// uint16_t* end_of_recs = END_LAST_REC(edit_page);
-		// uint16_t rec_offset = end_of_recs - rec->length;
-		// dir_vec.push_back(rec_offset);
-		// memcpy(dir_ptr, dir_vec, dir_vec.size());
-		// delete dir_vec;
+		rec_offset_t* dir_ptr = (rec_offset_t*)START_PAGE_DIR(edit_page);
+		rec_offset_t* dir_arr = new rec_offset_t[new_num_dir_entires];
+		std::cout << "The number of offsets currently in the directory: " << old_num_dir_entries << std::endl;
+		memcpy(dir_arr, dir_ptr + 1, old_num_dir_entries);
+		rec_offset_t* end_of_recs = (rec_offset_t*)END_LAST_REC(edit_page);
+		rec_offset_t* rec_offset = (rec_offset_t*)end_of_recs - rec->length;
+		std::cout << "Offset for the newly added record is: " << *rec_offset << std::endl;
+		std::cout << "dir_arr[0]: " << dir_arr[0] << std::endl;
+		dir_arr[old_num_dir_entries] = *rec_offset;
+		memcpy(dir_ptr, dir_arr, new_num_dir_entires);
+		delete[] dir_arr;
+
 
 		/* Output the currently read page to check for changes */
 		std::fstream buf_file;
