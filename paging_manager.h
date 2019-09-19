@@ -31,7 +31,6 @@ typedef std::fstream file_descriptor_t;
 
 /****************************************** DEFINITIONS ******************************************/
 
-// #define PAGE_SIZE 16384 // page size is 16kB ; 1kB = 1024 Bytes
 #define F_NAME_LEN 200 // maximum file name length
 #define PG_RECORD_UNUSED 65535
 
@@ -70,7 +69,7 @@ namespace Page
 	void pg_add_record(void *page, void *record);
 
 	// Delete the record with the record id rec_id from the page buffered at page. Note that this function may have to compact the page.
-	void pg_del_record(void *page, unsigned short rec_id); 
+	void pg_del_record(void *page, uint16_t rec_id); 
 
 	// Replace the record with record id rec_id with the record at record in the page buffered at page. Note that if the record is shorter, then compaction is required, but is the record is longer, expansion is required.
 	int pg_modify_record(void *page, void *record, BYTE rec_id); 
@@ -82,10 +81,10 @@ namespace Page
 	void rec_packstr(std::string &buf, const std::string &str);
 
 	// Unpack the next integer in buf and return its value. This function should advance next to the index of the next field in the buffer for subsequent calls (as does an iterator).
-	int rec_upackint(void *buf, unsigned short &next);
+	int rec_upackint(void *buf, uint16_t &next);
 
 	// Unpacks the next string in buf and put its value in val. It returns the size of the string. The next parameter advance to index to the next field.
-	int rec_upackstr(void *buf, unsigned short &next, std::string val);
+	int rec_upackstr(void *buf, uint16_t &next, std::string val);
 
 	// Stores the total length of buf into the first two bytes as a 16-bit unsigned integer.
 	void rec_finish(std::string &buf);

@@ -29,12 +29,19 @@ int main(int argc, char* argv[])
 	/* Create the string for the whole of record 1 */
 	std::string s_1;
 
-	/* Create one unit of integer data for record 1 */
-	int addr_1_num = 140;
+	/* Create integer data for record 1 */
+	int addr_1_num = 150;
+	int zip_code_1 = 38501;
 
-	/* Create a reference string for one unit of string data for record 1 */
-	std::string const_ref_s_1 = "Upper Station Camp Creek Road"; // 29 characters without null terminator '\0';
+	/* Create reference string(s) for string data for record 1 */
+	std::string const_ref_s_1 = "abcdefghijklmnopqrstuvwxyz777"; // 29 characters without null terminator '\0';
 	std::string &addr_str_1 = const_ref_s_1;
+
+	std::string const_ref_s_2 = "abcdefgh"; // 8 characters without null terminator '\0';
+	std::string &addr_str_2 = const_ref_s_2;
+
+	std::string const_ref_s_3 = "ab"; // 2 characters without null terminator '\0';
+	std::string &addr_str_3 = const_ref_s_3;
 
 	/* Create the reference value for the record's number, for which to be added */
 	uint16_t ref_page_num_1 = 1;
@@ -42,8 +49,11 @@ int main(int argc, char* argv[])
 
 	/* Setup and add record 1 */
 	Page::rec_begin(s_1);
-	// Page::rec_packint(s_1, addr_1_num);
+	Page::rec_packint(s_1, addr_1_num);
 	Page::rec_packstr(s_1, addr_str_1);
+	Page::rec_packstr(s_1, addr_str_2);
+	Page::rec_packstr(s_1, addr_str_3);
+	Page::rec_packint(s_1, zip_code_1);
 	Page::rec_finish(s_1);
 	Page::pg_add_record(page_num_1, (void*)s_1.data());
 

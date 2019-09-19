@@ -133,7 +133,7 @@ namespace Page
 		uint16_t page_num = *(uint16_t*)page;
 
 		std::cout << "Page number should be 1: " << *(uint16_t*)page << std::endl;
-		std::cout << "Record Length should be 48: " << rec->length << std::endl;
+		std::cout << "Record Length should be 59: " << rec->length << std::endl;
 
 		void* page_buf; // define the page buffer
 		page_buf = calloc(PAGE_SIZE, sizeof(char));
@@ -155,25 +155,25 @@ namespace Page
 		edit_page->free_bytes = edit_page->free_bytes - rec->length - (uint16_t)sizeof(uint16_t); // update F
 
 		/* Update the record directory for the newly added record */
-		uint16_t* dir_ptr = START_PAGE_DIR(edit_page);
-		std::vector<uint16_t>* dir_vec = new std::vector<uint16_t>(edit_page->dir_size);
-		uint16_t* end_of_recs = END_LAST_REC(edit_page);
-		uint16_t rec_offset = end_of_recs - rec->length;
-		dir_vec.push_back(rec_offset);
-		memcpy(dir_ptr, dir_vec, dir_vec.size());
-		delete dir_vec;
+		// uint16_t* dir_ptr = START_PAGE_DIR(edit_page);
+		// std::vector<uint16_t>* dir_vec = new std::vector<uint16_t>(edit_page->dir_size);
+		// uint16_t* end_of_recs = END_LAST_REC(edit_page);
+		// uint16_t rec_offset = end_of_recs - rec->length;
+		// dir_vec.push_back(rec_offset);
+		// memcpy(dir_ptr, dir_vec, dir_vec.size());
+		// delete dir_vec;
 
 		/* Output the currently read page to check for changes */
 		std::fstream buf_file;
 		buf_file.open("page_buf.dat", std::ios::out | std::ios::binary);
 		buf_file.write(reinterpret_cast<char*>(edit_page), PAGE_SIZE);
 		buf_file.close();
-				
+
 		pfile.close(); // close the pages file
 	}
 
 
-	void pg_del_record(void* page, unsigned short rec_id)
+	void pg_del_record(void* page, uint16_t rec_id)
 	{
 		
 	}
@@ -187,21 +187,19 @@ namespace Page
 
 	void rec_packint(std::string &buf, int val)
 	{
-		uint16_t old_size = buf.size();
-		buf.resize(old_size + sizeof(uint16_t) + sizeof(int)); // 2 for length 'L', 2 for type 't', & 4 for int data 'd'
+		uint16_t type = 4; // define the DB type for a signed integer
+		BYTE* t_arr = (BYTE*)&type; // convert <type> into an array of 2 bytes
+		BYTE* d_arr = (BYTE*)&val; // convert <val> into an array of 4 bytes
 
-		BYTE* t_ptr = ((BYTE*)buf.data()) + sizeof(uint16_t); // move a pointer to the beginning of the type field 't'
-		*t_ptr = 4;
-
-		BYTE* d_ptr = ((BYTE*)buf.data() + sizeof(uint16_t) + sizeof(uint16_t)); // move a pointer to the beginning of the data field 'd'
-		BYTE* arr = (BYTE*)&val; // assign each of the 4 bytes of <val> to an array of bytes
-		memcpy(d_ptr, arr, sizeof(int));
-		// for(int i = 0 ; i < 4; i++) {
-		// 	d_ptr[i] = arr[i]; // place the array of bytes one by one
-		// }
+		for(int i = 0; i < sizeof(uint16_t); i++) {
+			buf += t_arr[i]; // append the 2 bytes of <type> to <buf>
+		}
+		for(int j = 0; j < sizeof(int); j++) {
+			buf += d_arr[j]; // append the 4 bytes of <val> to <buf>
+		}
 
 		/* Check the integer value that was passed in */
-		// std::cout << *(int*)arr << std::endl;
+		// std::cout << *(int*)d_arr << std::endl;
 
 		/* Check the current contents of the buffer */
 		// for(int i = 0 ; i < buf.size(); i++) {
@@ -212,14 +210,15 @@ namespace Page
 
 	void rec_packstr(std::string &buf, const std::string &str)
 	{
-		uint16_t old_size = buf.size();
-		buf.resize(old_size + sizeof(uint16_t) + str.size() + 9); // 2 for length 'L', 2 for type 't', & (original string length + 9) for data 'd'
+		uint16_t type = str.size() + 9; // define the DB type for a string
+		BYTE* t_arr = (BYTE*)&type; // convert <type> into an array of 2 bytes
 
-		BYTE* t_ptr = ((BYTE*)buf.data()) + sizeof(uint16_t); // move a pointer to the beginning of the type field 't'
-		*t_ptr = (str.size() + 9);
-
-		BYTE* d_ptr = ((BYTE*)buf.data() + sizeof(uint16_t) + sizeof(uint16_t)); // move a pointer to the beginning of the data field 'd'
-		memcpy(d_ptr, str.data(), str.size());
+		for(int t = 0; t < sizeof(uint16_t); t++) {
+			buf += t_arr[t]; // append the 2 bytes of <type> to <buf>
+		}
+		for(int d = 0; d < str.size(); d++) {
+			buf += str[d]; // append each character from <str> to <buf> in order
+		}
 
 		/* Check the current contents of the string buffer */
 		// for(int i = 0 ; i < buf.size(); i++) {
