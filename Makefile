@@ -1,8 +1,10 @@
-# Set defualt parameters
+#----------------------------------------- DEFAULT PARAMS ----------------------------------------#
 db_file ?= "test_db.dat"
 buf_file ?= "page_buf.dat"
 db_exec ?= "driver"
 test_exec ?= "test"
+
+#----------------------------------------- FOR EXECUTION -----------------------------------------#
 
 run: comp
 	./$(db_exec) $(db_file) # run "driver" executable
@@ -13,14 +15,23 @@ comp:
 clean:
 	rm $(db_file) $(buf_file) $(db_exec) $(test_exec)
 
-del:
-	rm -r a.out*
+#----------------------------------------- FOR DEBUGGING -----------------------------------------#
 
-# debug: comp
-# 	lldb $(db_exec) $(db_file)
+debug: debug_comp
+	lldb $(db_exec)
+
+debug_comp:
+	g++ -g -o $(db_exec) driver.cpp paging_manager.cpp # compile and link into a "driver" executable
+
+debug_clean:
+	rm -r $(db_exec).dSYM
+
+#------------------------------------------ FOR TESTING ------------------------------------------#
 
 test: test_db
 	./$(test_exec)
 
 test_db:
 	g++ -o $(test_exec) test.cpp paging_manager.cpp
+
+#-------------------------------------------------------------------------------------------------#

@@ -2,3 +2,4 @@ test.cpp
 driver
 test_db.dat
 page_buf.dat
+record_setup.cpp

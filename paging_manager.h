@@ -53,7 +53,7 @@ namespace Page_file
 	void pgf_read(file_descriptor_t &pfile, int page_id, void *page_buf);
 
 	// Print the contents of the DB file to ensure the existance of appropriate records.
-	void print(char fname[F_NAME_LEN]);
+	void print_records(char fname[F_NAME_LEN]);
 }
 
 
@@ -65,7 +65,7 @@ namespace Page
 	// Move the bytes in the page beginning at start forwards num_bytes bytes.
 	void pg_expand(void *page_buf, uint16_t num_bytes, BYTE *start);
 
-	// Add a pre-formatted record at record into the page whose buffer address is at page.
+	// Add a pre-formatted record at record into the page whose buffer address is at <page>. Returns <rec_id>.
 	void pg_add_record(void *page, void *record);
 
 	// Delete the record with the record id rec_id from the page buffered at page. Note that this function may have to compact the page.
@@ -81,10 +81,10 @@ namespace Page
 	void rec_packstr(std::string &buf, const std::string &str);
 
 	// Unpack the next integer in buf and return its value. This function should advance next to the index of the next field in the buffer for subsequent calls (as does an iterator).
-	int rec_upackint(void *buf, uint16_t &next);
+	// int rec_upackint(void *buf, uint16_t &next);
 
 	// Unpacks the next string in buf and put its value in val. It returns the size of the string. The next parameter advance to index to the next field.
-	int rec_upackstr(void *buf, uint16_t &next, std::string val);
+	// int rec_upackstr(void *buf, uint16_t &next, std::string &val);
 
 	// Stores the total length of buf into the first two bytes as a 16-bit unsigned integer.
 	void rec_finish(std::string &buf);

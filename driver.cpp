@@ -56,8 +56,10 @@ int main(int argc, char* argv[])
 	Page::rec_packint(s_1, zip_code_1);
 	Page::rec_finish(s_1);
 	Page::pg_add_record(page_num_1, (void*)s_1.data());
+	// pgf_write();
 
 	/************************************* SET UP RECORD #2 TO ADD ************************************/
+
 
 	return 0;
 }
