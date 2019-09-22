@@ -90,7 +90,7 @@ namespace Page
 	void rec_finish(std::string &buf);
 
 	// Resize buf so that the size can be placed at the first two bytes. Initializes next to the index of where the first field should go.
-	void rec_begin(std::string &buf);
+	void rec_begin(std::string &buf, uint16_t &next);
 }
 
 #endif // PAGING_MANAGER

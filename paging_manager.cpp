@@ -302,8 +302,9 @@ namespace Page
 	}
 
 
-	void rec_begin(std::string &buf /*, uint16_t &next*/) // next initializes the 2 for the unpack functions
+	void rec_begin(std::string &buf, uint16_t &next)
 	{
 		buf.resize(sizeof(uint16_t)); // start the record buffer by creating enough space for 'L'
+		next = 2; // always initializes next to 2 for the unpack functions
 	}
 }
