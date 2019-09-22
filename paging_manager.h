@@ -66,7 +66,7 @@ namespace Page
 	void pg_expand(void *page_buf, uint16_t num_bytes, BYTE *start);
 
 	// Add a pre-formatted record at record into the page whose buffer address is at <page>. Returns <rec_id>.
-	void pg_add_record(void *page, void *record);
+	uint16_t pg_add_record(void *page, void *record);
 
 	// Delete the record with the record id rec_id from the page buffered at page. Note that this function may have to compact the page.
 	void pg_del_record(void *page, uint16_t rec_id); 

@@ -37,8 +37,8 @@ struct header_page_t {
 
 /********************************************* MACROS ********************************************/
 
-#define START_PAGE_DIR(page) ((BYTE*)&page->dir_size) - ((page->dir_size)*2)
-#define END_LAST_REC(page) ((BYTE*)&page->dir_size) - ((page->dir_size)*2) - (page->free_bytes)
+#define START_PAGE_DIR(page) (BYTE*)(((BYTE*)&page->dir_size) - ((page->dir_size)*2))
+#define END_LAST_REC(page) (BYTE*)(((BYTE*)&page->dir_size) - ((page->dir_size)*2) - (page->free_bytes))
 
 /************************************ FUNCTION IMPLEMENTATIONS ***********************************/
 
@@ -77,7 +77,7 @@ namespace Page_file
 
 	void pgf_write(file_descriptor_t &pfile, int page_id, void *page_buf)
 	{
-		int16_t db_pg_start = ((PAGE_SIZE * page_id));
+		uint16_t db_pg_start = ((PAGE_SIZE * page_id));
 		pfile.seekg(db_pg_start, std::ios_base::beg);
 		pfile.write(reinterpret_cast<char*>(page_buf), PAGE_SIZE);
 	}
@@ -127,22 +127,12 @@ namespace Page
 	}
 
 
-	void pg_add_record(void* page, void* record) // return the rec_id as a uint16_t
+	uint16_t pg_add_record(void* page, void* record)
 	{
 		record_t* rec = (record_t*)record;
-		uint16_t page_num = *(uint16_t*)page;
-
-		std::cout << "Page number should be 1: " << *(uint16_t*)page << std::endl;
-		std::cout << "Record Length should be 59: " << rec->length << std::endl;
-
-		// DO NOT CREATE A BRAND NEW PAGE BUFFER INSIDE THE ADD RECORD FUNCTION, DO THAT IN THE DRIVER THEN PASS BY REFERENCE!!!
-		void* page_buf; // define the page buffer
-		page_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
-		std::fstream pfile; // define the DB file for reading and writing
-		pfile.open("test_db.dat"); // open the pages file
-		Page_file::pgf_read(pfile, page_num, page_buf);
-
-		page_t* edit_page = (page_t*)page_buf;
+		std::cout << "Record Length: " << rec->length << std::endl;
+		
+		page_t* edit_page = (page_t*)page;
 		BYTE* add_rec_ptr = END_LAST_REC(edit_page);
 
 		if(edit_page->free_bytes >= rec->length) // if there is enough room for the record to be added
@@ -154,34 +144,30 @@ namespace Page
 			uint16_t old_num_dir_entries = (edit_page->dir_size - 1);
 			uint16_t new_num_dir_entires = edit_page->dir_size;
 
-
 			/* Update the record directory for the newly added record */
 			rec_offset_t* dir_ptr = (rec_offset_t*)START_PAGE_DIR(edit_page);
 			rec_offset_t* dir_arr = new rec_offset_t[new_num_dir_entires];
-			std::cout << "The number of offsets currently in the directory: " << old_num_dir_entries << std::endl;
+			std::cout << "The number of record offsets currently in the directory: " << old_num_dir_entries << std::endl;
 			memcpy(dir_arr, dir_ptr + 1, old_num_dir_entries*2); // multiplied by 2 to account for moving only bytes and not uint16_ts
 			BYTE* end_of_recs = END_LAST_REC(edit_page);
 			BYTE* rec_offset = (BYTE*)(end_of_recs - rec->length);
-			std::cout << "Offset for the newly added record is: " << rec_offset << std::endl;
-			std::cout << "dir_arr[0]: " << dir_arr[0] << std::endl;
 			dir_arr[old_num_dir_entries] = (rec_offset - (BYTE*)edit_page); // offset relative to beginning of <edit_page>
-			memcpy(dir_ptr, dir_arr, new_num_dir_entires*2); // multiplied by 2 to account for moving only bytes and not uint16_ts
+			memcpy((BYTE*)dir_ptr, (BYTE*)dir_arr, new_num_dir_entires*2); // multiplied by 2 to account for moving only bytes and not uint16_ts
 			delete[] dir_arr;
-
 
 			/* Output the currently read page to check for changes */
 			std::fstream buf_file;
 			buf_file.open("page_buf.dat", std::ios::out | std::ios::binary);
 			buf_file.write(reinterpret_cast<char*>(edit_page), PAGE_SIZE);
 			buf_file.close();
+
+			return old_num_dir_entries;
 		}
 		else
 		{
-			printf("Not enough space for this record on page %hi.\n",page_num);
+			printf("ERROR: Not enough space for this record.");
 			exit(EXIT_FAILURE);
 		}
-
-		pfile.close(); // close the pages file
 	}
 
 
