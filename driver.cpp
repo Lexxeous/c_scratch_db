@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 
 	/******************************** FORMAT THE DB FILE IN BINARY *******************************/
 
-	uint16_t ref_num = 3;
+	uint16_t ref_num = 5;
 	uint16_t &num_pages = ref_num;
 	Page_file::pgf_format(test_db_name, num_pages);
 
@@ -33,7 +33,8 @@ int main(int argc, char* argv[])
 	std::string s_0;
 
 	/* Create <next> reference for unpacking record 0 */
-	uint16_t next_0;
+	uint16_t ref_next_0 = 2;
+	uint16_t &next_0 = ref_next_0;
 
 	/* Create integer data for record 0 */
 	int addr_num_0 = 150;
@@ -41,7 +42,7 @@ int main(int argc, char* argv[])
 	int page_num_0 = 1;
 
 	/* Create reference string(s) for string data for record 0 */
-	std::string const_ref_s_0 = "abcdefghijklmnopqrstuvwxyz777"; // 29 characters without null terminator '\0';
+	std::string const_ref_s_0 = "abcdefghijklmnopqrstuvwxyz777";
 	std::string &addr_str_0 = const_ref_s_0;
 
 	/* Setup and add record 0 */
@@ -61,15 +62,16 @@ int main(int argc, char* argv[])
 	std::string s_1;
 
 	/* Create <next> reference for unpacking record 1 */
-	uint16_t next_1;
+	uint16_t ref_next_1 = 2;
+	uint16_t &next_1 = ref_next_1;
 
 	/* Create integer data for record 1 */
-	int addr_num_1 = 140;
-	int zip_code_1 = 37066;
+	int addr_num_1 = 42;
+	int zip_code_1 = 20470;
 	int page_num_1 = 1;
 
 	/* Create reference string(s) for string data for record 1 */
-	std::string const_ref_s_1 = "Upper Station Camp Creek Road"; // 29 characters without null terminator '\0';
+	std::string const_ref_s_1 = "P Sherman Wallaby Way, Sydney";
 	std::string &addr_str_1 = const_ref_s_1;
 
 	/* Setup and add record 1 */
@@ -89,15 +91,16 @@ int main(int argc, char* argv[])
 	std::string s_2;
 
 	/* Create <next> reference for unpacking record 2 */
-	uint16_t next_2;
+	uint16_t ref_next_2 = 2;
+	uint16_t &next_2 = ref_next_2;
 
 	/* Create integer data for record 2 */
-	int addr_num_2 = 999;
-	int zip_code_2 = 69696;
+	int addr_num_2 = 666;
+	int zip_code_2 = 66666;
 	int page_num_2 = 2;
 
 	/* Create reference string(s) for string data for record 2 */
-	std::string const_ref_s_2 = "123456789ABCDEF123"; // 18 characters without null terminator '\0';
+	std::string const_ref_s_2 = "Highway to Hell";
 	std::string &addr_str_2 = const_ref_s_2;
 
 	/* Setup and add record 2 */
@@ -117,15 +120,16 @@ int main(int argc, char* argv[])
 	std::string s_3;
 
 	/* Create <next> reference for unpacking record 3 */
-	uint16_t next_3;
+	uint16_t ref_next_3 = 2;
+	uint16_t &next_3 = ref_next_3;
 
 	/* Create integer data for record 3 */
-	int addr_num_3 = 666;
-	int zip_code_3 = 42020;
+	int addr_num_3 = 752;
+	int zip_code_3 = 38502;
 	int page_num_3 = 2;
 
 	/* Create reference string(s) for string data for record 3 */
-	std::string const_ref_s_3 = "amzldofkaheyfhgjahdbeee"; // 23 characters without null terminator '\0';
+	std::string const_ref_s_3 = "North Dixie Ave";
 	std::string &addr_str_3 = const_ref_s_3;
 
 	/* Setup and add record 3 */
@@ -139,6 +143,51 @@ int main(int argc, char* argv[])
 	Page_file::pgf_write(pfile, page_num_3, page_buf);
 	std::cout << "Added record " << rec_id_3 << " to page " << page_num_3 << std::endl;
 
+	/*********************************** SET UP RECORD #4 TO ADD *********************************/
+
+	/* Create the string for the whole of record 4 */
+	std::string s_4;
+
+	/* Create <next> reference for unpacking record 4 */
+	uint16_t ref_next_4 = 2;
+	uint16_t &next_4 = ref_next_4;
+
+	/* Create integer data for record 4 */
+	int addr_num_4 = 123;
+	int zip_code_4 = 12345;
+	int page_num_4 = 3;
+
+	/* Create reference string(s) for string data for record 4 */
+	std::string const_ref_s_4 = "This is an address line";
+	std::string &addr_str_4 = const_ref_s_4;
+
+	/* Setup and add record 4 */
+	Page_file::pgf_read(pfile, page_num_4, page_buf);
+	Page::rec_begin(s_4, next_4);
+	Page::rec_packint(s_4, addr_num_4);
+	Page::rec_packstr(s_4, addr_str_4);
+	Page::rec_packint(s_4, zip_code_4);
+	Page::rec_finish(s_4);
+	uint16_t rec_id_4 = Page::pg_add_record(page_buf, (void*)s_4.data());
+	Page_file::pgf_write(pfile, page_num_4, page_buf);
+	std::cout << "Added record " << rec_id_4 << " to page " << page_num_4 << std::endl;
+
+	/************************************** DELETE SOME RECORDS ************************************/
+
+	int del_page_num_2 = 2;
+	int del_page_num_3 = 3;
+
+	Page_file::pgf_read(pfile, del_page_num_2, page_buf); // read page 2
+	Page::pg_del_record(page_buf, 1); // delete record at index 1
+	Page_file::pgf_write(pfile, del_page_num_2, page_buf); // write page 2
+
+	Page_file::pgf_read(pfile, del_page_num_3, page_buf); // read page 3
+	Page::pg_del_record(page_buf, 0); // delete record at index 0
+	Page_file::pgf_write(pfile, del_page_num_3, page_buf); // write page 3
+
+	/*************************************** PRINT THE RECORDS *************************************/
+
+	Page_file::print_records(pfile);
 
 	pfile.close();
 	return 0;

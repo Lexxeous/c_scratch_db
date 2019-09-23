@@ -53,7 +53,7 @@ namespace Page_file
 		}
 
 		header_page_t h_page; // define the header page datatype
-		strncpy(h_page.sig, "EAGL9", SIG_SIZE);
+		strncpy(h_page.sig, "EAGL0", SIG_SIZE);
 		h_page.num_pages = fsize;
 		bzero(h_page.rest, PAGE_SIZE - SIG_SIZE - sizeof(uint16_t));
 
@@ -106,9 +106,68 @@ namespace Page_file
 	}
 
 
-	void print_records(char fname[F_NAME_LEN])
+	void print_records(file_descriptor_t &pfile)
 	{
-		
+		void* page_buf; // define the page buffer
+		page_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
+
+		/* Get the number of pages from the header page */
+		Page_file::pgf_read(pfile, 0, page_buf);
+		header_page_t* h_page = (header_page_t*)page_buf;
+		uint16_t page_count = (uint16_t)h_page->num_pages;
+		std::cout << "\nDB pages: " << page_count << std::endl << std::endl;
+		std::cout << "Page 0 (Header Page):" << std::endl << "  ..." << std::endl;
+
+		/* Print the contents of each data page */
+		for(int i = 1; i < page_count; i++)
+		{
+			/* Get the array of record offsets */
+			Page_file::pgf_read(pfile, i, page_buf); // read the current page
+			page_t* d_page = (page_t*)page_buf; // cast as a header page
+			uint16_t num_entries = d_page->dir_size;
+			rec_offset_t* dir_ptr = (rec_offset_t*)START_PAGE_DIR(d_page);
+			rec_offset_t* dir_arr = new rec_offset_t[num_entries];
+			memcpy(dir_arr, dir_ptr, num_entries*2); // multiplied by 2 to account for moving only bytes and not uint16_ts
+
+			/* Print the record offsets for each page */
+			std::cout << "Page " << i << ": " << std::endl;
+
+			if(d_page->dir_size == 0) // if there are no records to print
+			{
+				std::cout << "  ..." << std::endl;
+			}
+			else // if there are records to print
+			{
+				std::cout << "  Offsets: ";
+				for(int j = 0; j < num_entries; j++)
+				{
+					std::cout << (uint16_t)dir_arr[j] << " | ";
+				}
+				std::cout << std::endl;
+
+				/* Loop through all records in page <i> */
+				for(int k = 0; k < num_entries; k++) // for all offsets in the page
+				{
+					if(dir_arr[k] != RECORD_UNUSED) // if the record exists
+					{
+						uint16_t ref_next = 2;
+						uint16_t &next = ref_next;
+						std::string val;
+
+						BYTE* cur_off = (BYTE*)((BYTE*)d_page + dir_arr[k]);
+						record_t* cur_rec = (record_t*)cur_off;
+
+						int val_1 = Page::rec_upackint((void*)cur_rec, next);
+						int str_len = Page::rec_upackstr((void*)cur_rec, next, val);
+						int val_2 = Page::rec_upackint((void*)cur_rec, next);
+
+						std::cout << "  Record " << k << ":  int: " << val_1 << "  string: " << val << "  int: " << val_2 << std::endl;
+					}
+				}
+			}
+			delete[] dir_arr;
+		}
+		std::cout << "END" << std::endl;
 	}
 } // End of "Page_file" namespace
 
@@ -117,21 +176,23 @@ namespace Page
 {
 	void pg_compact(void* page_buf, uint16_t num_bytes, BYTE* start)
 	{
-		// memmove(dest=start_of_rec_to_be_deleted, src=end_of_rec_to_be_deleted=start, count=<num_bytes>)
+		record_t* compact_record = (record_t*)start; // destination (dest)
+		BYTE* compact_record_end = (BYTE*)((BYTE*)compact_record + compact_record->length); // source (src)
+		memmove((BYTE*)compact_record, compact_record_end, num_bytes);
 	}
 
 
 	void pg_expand(void* page_buf, uint16_t num_bytes, BYTE* start)
 	{
-		
+		// record_t* expand_record = (record_t*)start; // destination (dest)
+		// BYTE* expand_record_end = (BYTE*)((BYTE*)expand_record + expand_record->length); // source (src)
+		// memmove((BYTE*)expand_record, expand_record_end, num_bytes);
 	}
 
 
 	uint16_t pg_add_record(void* page, void* record)
 	{
 		record_t* rec = (record_t*)record;
-		std::cout << "Record Length: " << rec->length << std::endl;
-		
 		page_t* edit_page = (page_t*)page;
 		BYTE* add_rec_ptr = END_LAST_REC(edit_page);
 
@@ -147,7 +208,6 @@ namespace Page
 			/* Update the record directory for the newly added record */
 			rec_offset_t* dir_ptr = (rec_offset_t*)START_PAGE_DIR(edit_page);
 			rec_offset_t* dir_arr = new rec_offset_t[new_num_dir_entires];
-			std::cout << "The number of record offsets currently in the directory: " << old_num_dir_entries << std::endl;
 			memcpy(dir_arr, dir_ptr + 1, old_num_dir_entries*2); // multiplied by 2 to account for moving only bytes and not uint16_ts
 			BYTE* end_of_recs = END_LAST_REC(edit_page);
 			BYTE* rec_offset = (BYTE*)(end_of_recs - rec->length);
@@ -156,53 +216,98 @@ namespace Page
 			delete[] dir_arr;
 
 			/* Output the currently read page to check for changes */
-			std::fstream buf_file;
-			buf_file.open("page_buf.dat", std::ios::out | std::ios::binary);
-			buf_file.write(reinterpret_cast<char*>(edit_page), PAGE_SIZE);
-			buf_file.close();
+			// std::fstream buf_file;
+			// buf_file.open("page_buf.dat", std::ios::out | std::ios::binary);
+			// buf_file.write(reinterpret_cast<char*>(edit_page), PAGE_SIZE);
+			// buf_file.close();
 
 			return old_num_dir_entries;
 		}
-		else
+		else // not enough space to add record
 		{
-			printf("ERROR: Not enough space for this record.");
+			std::cout << "ERROR: Not enough space for this record." << std::endl;
 			exit(EXIT_FAILURE);
 		}
 	}
 
 
-	// void pg_del_record(void* page, uint16_t rec_id)
-	// {
-	// 	uint16_t page_num = *(uint16_t*)page;
+	void pg_del_record(void* page, uint16_t rec_id)
+	{
+		page_t* del_rec_page = (page_t*)page;
+		BYTE* end_of_recs = END_LAST_REC(del_rec_page);
+		uint16_t num_entries = del_rec_page->dir_size;
+		bool last_rec;
 
-	// 	std::cout << "Page number should be _: " << *(uint16_t*)page << std::endl;
+		/* If no records in page */
+		if(num_entries == 0)
+		{
+			std::cout << "ERROR: No records available to delete." << std::endl;
+			exit(EXIT_FAILURE);
+		}
 
-	// 	void* page_buf; // define the page buffer
-	// 	page_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
-	// 	std::fstream pfile; // define the DB file for reading and writing
-	// 	pfile.open("test_db.dat"); // open the pages file
-	// 	Page_file::pgf_read(pfile, page_num, page_buf);
+		/* Determine if the record to be deleted is the last one or not */
+		if((rec_id + 1) == num_entries) // if <rec_id> identifies the last record in the page
+			last_rec = true;
+		else
+			last_rec = false;
 
-	// 	page_t* edit_page = (page_t*)page_buf;
-	// 	BYTE* add_rec_ptr = END_LAST_REC(edit_page);
+		/* Get the array of record offsets */
+		rec_offset_t* dir_ptr = (rec_offset_t*)START_PAGE_DIR(del_rec_page);
+		rec_offset_t* dir_arr = new rec_offset_t[num_entries];
+		memcpy((BYTE*)dir_arr, (BYTE*)dir_ptr, num_entries*2); // multiplied by 2 to account for moving only bytes and not uint16_ts
 
-	// 	if(/* record exists in the directory */)
-	// 	{
-	// 		// get the offset of the record from record_directory[rec_id]
-	// 		// get the offset of the next record from record_directory[rec_id + 1]
-	// 		// delete the appropriate record
-	// 		// subtract the length of the record from the number of free bytes in the page
-	// 	}
-	// 	else {
-	// 		std::cout << "ERROR: Record ", rec_id, " does not exist within page ", page_num, "\n";
-	// 	}
+		/* Get the length of the current record */
+		rec_offset_t cur_rec_offset = dir_arr[rec_id];
+		BYTE* del_beg_rec = (BYTE*)((BYTE*)del_rec_page + cur_rec_offset); // get pointer to the beginning of the record (dest)
+		record_t* del_record = (record_t*)del_beg_rec;
+
+		/* Delete record or not? */
+		if(rec_id >= num_entries || (uint16_t)cur_rec_offset == RECORD_UNUSED) // record does not exist in the directory
+		{
+			std::cout << "ERROR: Record " << rec_id << " does not exist." << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		else // record exists in the directory
+		{
+			if(!last_rec) // if we want to delete a record in the middle of other records
+			{
+				uint16_t rec_len_behind = 0;
+				for(int r = 0; r < rec_id; r++)
+				{
+					if(dir_arr[r] != RECORD_UNUSED)
+					{
+						BYTE* cur_off = (BYTE*)((BYTE*)del_rec_page + dir_arr[r]);
+						record_t* cur_rec = (record_t*)cur_off;
+						rec_len_behind += cur_rec->length; // sum the lengths of the records behind the one to be deleted
+					}
+				}
+
+				BYTE* del_end_rec = (BYTE*)((BYTE*)del_beg_rec + del_record->length); // get pointer to the end of the record (src)
+				uint16_t num_bytes = PAGE_SIZE - 2*sizeof(uint16_t) - 2*(num_entries) - del_rec_page->free_bytes - del_record->length - rec_len_behind;
+				
+				Page::pg_compact(del_rec_page, num_bytes, del_beg_rec);
+				dir_arr[rec_id] = (uint16_t)RECORD_UNUSED; // set current record offset to RECORD_UNUSED
+				for(int d = rec_id + 1; d <= num_entries - 1; d++) // for all offsets after the current
+				{
+					if(dir_arr[d] != RECORD_UNUSED)
+						dir_arr[d] -= del_record->length; // sutract the length of the deleted record
+				}
+				memmove((BYTE*)dir_ptr, (BYTE*)dir_arr, num_entries*2); // rewrite the directory with updated offsets
+			}
+			else // if we want to delete the last record in the page
+			{
+				dir_arr[rec_id] = (uint16_t)RECORD_UNUSED;
+				memmove((BYTE*)dir_ptr, (BYTE*)dir_arr, num_entries*2); // rewrite the directory with the RECORD_UNUSED value
+				bzero(del_beg_rec, del_record->length); // zeros out the last record
+			}
+
+			del_rec_page->free_bytes = del_rec_page->free_bytes + del_record->length; // add length of record to number of free bytes
+		}
+		delete[] dir_arr;
+	}
 
 
-	// 	pfile.close(); // close the pages file
-	// }
-
-
-	int pg_modify_record(void* page, void* record, BYTE rec_id)
+	int pg_modify_record(void* page, void* record, uint16_t rec_id)
 	{
 		return 0;
 	}
@@ -214,10 +319,12 @@ namespace Page
 		BYTE* t_arr = (BYTE*)&type; // convert <type> into an array of 2 bytes
 		BYTE* d_arr = (BYTE*)&val; // convert <val> into an array of 4 bytes
 
-		for(int i = 0; i < sizeof(uint16_t); i++) {
+		for(int i = 0; i < sizeof(uint16_t); i++)
+		{
 			buf += t_arr[i]; // append the 2 bytes of <type> to <buf>
 		}
-		for(int j = 0; j < sizeof(int); j++) {
+		for(int j = 0; j < sizeof(int); j++)
+		{
 			buf += d_arr[j]; // append the 4 bytes of <val> to <buf>
 		}
 
@@ -236,10 +343,12 @@ namespace Page
 		uint16_t type = str.size() + 9; // define the DB type for a string
 		BYTE* t_arr = (BYTE*)&type; // convert <type> into an array of 2 bytes
 
-		for(int t = 0; t < sizeof(uint16_t); t++) {
+		for(int t = 0; t < sizeof(uint16_t); t++)
+		{
 			buf += t_arr[t]; // append the 2 bytes of <type> to <buf>
 		}
-		for(int d = 0; d < str.size(); d++) {
+		for(int d = 0; d < str.size(); d++)
+		{
 			buf += str[d]; // append each character from <str> to <buf> in order
 		}
 
@@ -250,43 +359,55 @@ namespace Page
 	}
 
 
-	// int rec_upackint(void* buf, uint16_t &next)
-	// {
-	// 	BYTE* arr = (BYTE*)&buf;
-	// 	// record_t* arr = (record_t*)buf;
-	// 	uint16_t type = *(uint16_t*)(arr + next);
+	int rec_upackint(void* buf, uint16_t &next)
+	{
+		/* Define pointers */
+		int* val_ptr;
+		uint16_t* type;
+		BYTE* arr = (BYTE*)buf;
 
-	// 	if(type == 4) {
-	// 		int val = *(int*)(arr+sizeof(uint16_t));
-	// 		next += 6;
-	// 		break;
-	// 	}
-	// 	else {
-	// 		throw "ERROR: Integer value not found to unpack.";
-	// 	}
+		type = (uint16_t*)((BYTE*)arr + next); // get the type
 
-	// 	return val;
-	// }
+		if(type[0] == 4) // if integer
+		{
+			val_ptr = (int*)((BYTE*)arr + next + sizeof(uint16_t));
+			next += 6; // 2 bytes for type and 4 bytes for the integer value
+		}
+		else // if not integer
+		{
+			std::cout << "ERROR: Integer value not found to unpack." << std::endl;
+		}
+
+		return val_ptr[0];
+	}
 
 
-	// int rec_upackstr(void* buf, uint16_t &next, std::string &val)
-	// {
-	// 	BYTE* arr = (BYTE*)&buf;
-	// 	// record_t* arr = (record_t*)buf;
-	// 	uint16_t type = *(uint16_t*)(arr + next);
+	int rec_upackstr(void* buf, uint16_t &next, std::string &val)
+	{
+		/* Define pointers */
+		uint16_t str_len;
+		uint16_t* type;
 
-	// 	if(type >= 9) {
-	// 		int str_len = type - 9;
-	// 		std::string val = *(std::string*)(arr+sizeof(uint16_t));
-	// 		next = next + sizeof(uint16_t) + str_len;
-	// 		break;
-	// 	}
-	// 	else {
-	// 		throw "ERROR: String value not found to unpack.";
-	// 	}
+		type = (uint16_t*)((BYTE*)buf + next); // get the type
 
-	// 	return str_len;
-	// }
+		if(type[0] >= 9) // if string
+		{
+			str_len = type[0] - 9;
+			BYTE* val_ptr = (BYTE*)((BYTE*)buf + next + sizeof(uint16_t));
+			next = next + sizeof(uint16_t) + str_len;
+
+			for(uint16_t i = 0; i < str_len; i++)
+			{
+				val += val_ptr[i];
+			}
+		}
+		else // if not string
+		{
+			std::cout << "ERROR: String value not found to unpack." << std::endl;
+		}
+
+		return (int)str_len;
+	}
 
 
 	void rec_finish(std::string &buf)

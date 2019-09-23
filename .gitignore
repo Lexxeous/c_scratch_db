@@ -3,3 +3,5 @@ driver
 test_db.dat
 page_buf.dat
 record_setup.cpp
+README
+README.txt
