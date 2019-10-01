@@ -17,8 +17,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <limits.h>
 #include <stdbool.h>
+#include <climits>
 #include <cmath>
 #include <fstream>
 #include <iostream>

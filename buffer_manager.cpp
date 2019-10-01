@@ -8,7 +8,7 @@
 
 /****************************************** HEADER FILES *****************************************/
 
-#include "paging_manager.h"
+#include "paging/paging.h"
 #include "buffer_manager.h"
 
 /************************************** IMPLEMENT STRUCTURES *************************************/
@@ -58,10 +58,10 @@ void buf_write(file_descriptor_t &pfile, int page_id)
 }
 
 
-void* buf_read(file_descriptor_t &pfile, int page_id)
-{
+// void* buf_read(file_descriptor_t &pfile, int page_id)
+// {
 
-}
+// }
 
 
 uint16_t replace(void* &page)
