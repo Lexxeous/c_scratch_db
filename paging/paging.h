@@ -8,6 +8,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <map>
 
 #include <climits>
 #include <stdexcept>
@@ -19,7 +20,7 @@ typedef uint8_t BYTE;
 //#define PG_NUM_RECORDS_PTR(page_offset) ((unsigned short *) (((BYTE *)
 //page_offset + PAGE_SIZE) - 2 * sizeof(unsigned short)))
 #define PG_NUM_RECORDS_PTR(page_offset)                                        \
-  ((unsigned short *)&(((Page_t *)page_offset)->dir_size))
+  ((unsigned short *)&(((::Page::Page_t *)page_offset)->dir_size))
 //#define PG_FREE_BYTES_PTR(page_offset) ((unsigned short *) (((BYTE *)
 //page_offset + PAGE_SIZE) - sizeof(unsigned short)))
 #define PG_FREE_BYTES_PTR(page_offset)                                         \
@@ -109,10 +110,11 @@ namespace Page {
   const BYTE RTYPE_STRING = 9;
 
   void rec_packint(std::string &buf, int val);
+  void rec_packshort(std::string &buf, int16_t val);
   void rec_packstr(std::string &buf, const std::string &str);
   int rec_upackint(void *buf, unsigned short &next);
   int16_t rec_upackshort(void *buf, unsigned short &next);
-  int rec_upackstr(void *buf, unsigned short &next, std::string val);
+  int rec_upackstr(void *buf, unsigned short &next, std::string &val);
   void rec_finish(std::string &buf);
   void rec_begin(std::string &buf);
 }; // namespace Page
@@ -128,6 +130,13 @@ namespace Page_file {
   //                       Page 0
   // page file header:  |sig+first_free+reserved|  ...    |
   //
+
+  struct page_free_t {
+    uint16_t size;
+    uint16_t free[PAGE_SIZE/sizeof(uint16_t) - 1];
+  };
+  
+  const uint16_t PGF_PAGES_FREE_ID = 3;
 
   void print(const char fname[]);
   void print(file_descriptor_t &pfile);

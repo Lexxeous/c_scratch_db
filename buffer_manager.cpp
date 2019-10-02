@@ -13,7 +13,17 @@
 
 /************************************** IMPLEMENT STRUCTURES *************************************/
 
-
+namespace Buf
+{
+	// struct buffer_descriptor_t {
+	// 	std::map<uint16_t, page_descriptor_t> buf_pool;
+	// 	uint16_t buf_pool_size;
+	// 	uint16_t num_dirty_pages = 0;
+	// 	uint16_t* lru_list = (uint16_t*)calloc(buf_pool_size, sizeof(uint16_t));
+	// 	bool buf_initialized = false;
+	// 	bool full();
+	// };
+}
 
 /********************************************* MACROS ********************************************/
 
@@ -34,12 +44,20 @@ namespace Buf
 		/* Throw an error if there are dirty pages that have not been written back to disk */
 		if(num_dirty_pages != 0)
 			throw buffer_error("Cannot initialize record buffer pool. There are still dirty pages that have not been written back to disk.");
+
+		buf_initialized = true;
 	}
 
 
-	void shutdown(file_descriptor_t &pfile)
+	void shutdown(/*file_descriptor_t &pfile*/)
 	{
+		buf_initialized = false;
 
+		/* clear all the values in <lru_list> */
+		for(int i = 0; i < buf_pool_size; i++)
+		{
+			lru_list[i] = 0;
+		}
 	}
 
 
@@ -65,7 +83,7 @@ namespace Buf
 		}
 		else // <page_id> was NOT found in <lru_list>
 		{
-			for(uint16_t k = (buf_pool_size - 1); k > 0; k--) // loop throught <lru_list> backwards
+			for(uint16_t k = (buf_pool_size - 1); k > 0; k--) // loop through <lru_list> backwards
 				lru_list[k] = lru_list[k-1]; // copy all the elements towards the back but leave index [0] alone
 		}
 		lru_list[0] = page_id; // set the first element in <lru_list> to <page_id>
@@ -104,7 +122,16 @@ namespace Buf
 
 	bool full()
 	{
-		return false;
+		bool has_zero = true;
+		for(int i = 0; i < buf_pool_size; i++)
+		{
+			if(lru_list[i] == 0) // there is at least 1 zero (empty slot) in <lru list>
+				return false;
+			else // there are NO zeros (empty slots) in <lru_list>
+				has_zero = false;
+		}
+
+		return !has_zero;
 	}
 
 	void print_lru_list()

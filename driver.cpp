@@ -8,6 +8,7 @@
 uint16_t buf_pool_size;
 uint16_t* lru_list = (uint16_t*)calloc(buf_pool_size, sizeof(uint16_t));
 uint16_t num_dirty_pages;
+bool buf_initialized = false;
 
 /************************************** DRIVER IMPLEMENTATION ************************************/
 
@@ -20,7 +21,9 @@ int main(int argc, char* argv[])
 	}
 
 	// num_dirty_pages = 1;
+	std::cout << buf_initialized << std::endl;
 	Buf::initialize(5);
+	std::cout << buf_initialized << std::endl;
 	Buf::print_lru_list();
 
 	Buf::LRU_update(3);
@@ -49,6 +52,11 @@ int main(int argc, char* argv[])
 
 	Buf::LRU_update(5);
 	Buf::print_lru_list();
+
+	Buf::shutdown();
+	Buf::print_lru_list();
+	std::cout << buf_initialized << std::endl;
+
 
 	// char* test_db_name = argv[1]; // get the DB file name
 
@@ -141,7 +149,7 @@ int main(int argc, char* argv[])
 	// std::string const_ref_s_2 = "Highway to Hell"; // 15 characters long
 	// std::string &addr_str_2 = const_ref_s_2;
 
-	//  Setup and add record 2 
+	// /* Setup and add record 2 */
 	// Page_file::pgf_read(pfile, rec_2_page_num, page_buf);
 	// Page::rec_begin(s_2/*, next_2*/);
 	// Page::rec_packint(s_2, addr_num_2);

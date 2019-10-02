@@ -20,6 +20,21 @@
 extern uint16_t buf_pool_size;
 extern uint16_t num_dirty_pages;
 extern uint16_t* lru_list;
+extern bool buf_initialized;
+
+/************************************** IMPLEMENT STRUCTURES *************************************/
+
+namespace Buf
+{
+	// struct page_descriptor_t
+	// {
+	// 	page_descriptor_t(uint16_t id, void* pg, bool dty) : page_id(id), page(pg), dirty(dty){}; // initial constructor
+	// 	page_descriptor_t() : page(0), dirty(false){}; // default constructor
+	// 	uint16_t page_id;
+	// 	void* page;
+	// 	bool dirty;
+	// };
+}
 
 /****************************************** DATA TYPES *******************************************/
 
@@ -41,14 +56,14 @@ namespace Buf
 	{
   	public:
 	    buffer_error(std::string what) : std::runtime_error(what) {}
-	    buffer_error(const char *what) : std::runtime_error(what) {}
+	    buffer_error(const char* what) : std::runtime_error(what) {}
   };
 
 	/* Set the buffer pool size to pool_sz. Note that you will want to throw an error if the number of dirty pages is not zero. */
 	void initialize(uint16_t pool_sz);
 
 	/* Flush all the pages to pfile and delete them from the pool. Also clear the LRU list and indicate that the buffer manager is not initialized. */
-	void shutdown(file_descriptor_t &pfile);
+	void shutdown(/*file_descriptor_t &pfile*/);
 
 	/* If the page is in the LRU list, then remove it and add it to the front. Otherwise just add it to the front. */
 	void LRU_update(uint16_t page_id);
