@@ -20,9 +20,34 @@ int main(int argc, char* argv[])
 	}
 
 	// num_dirty_pages = 1;
-	Buf::initialize(3);
-	lru_list[0] = 42;
+	Buf::initialize(5);
+	Buf::print_lru_list();
 
+	Buf::LRU_update(3);
+	Buf::print_lru_list();
+
+	Buf::LRU_update(4);
+	Buf::print_lru_list();
+
+	Buf::LRU_update(3);
+	Buf::print_lru_list();
+
+	Buf::LRU_update(10);
+	Buf::print_lru_list();
+
+	Buf::LRU_update(5);
+	Buf::print_lru_list();
+
+	Buf::LRU_update(7);
+	Buf::print_lru_list();
+
+	Buf::LRU_update(4);
+	Buf::print_lru_list();
+
+	Buf::LRU_update(2);
+	Buf::print_lru_list();
+
+	Buf::LRU_update(5);
 	Buf::print_lru_list();
 
 	// char* test_db_name = argv[1]; // get the DB file name

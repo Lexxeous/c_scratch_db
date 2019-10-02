@@ -45,7 +45,30 @@ namespace Buf
 
 	void LRU_update(uint16_t page_id)
 	{
+		bool in_list = false; // assume that <page_id> wont be found in <lru_list> by default
+		int pg_id_idx; // index of <page_id> if it already exists in <lru_list>
 
+		for(int i = 0; i < buf_pool_size; i++)
+		{
+			if(lru_list[i] == page_id) // <page_id> currently exists in <lru_list>
+			{
+				in_list = true;
+				pg_id_idx = i; // get the index where the <page_id> was "found"
+				break;
+			}
+		}
+
+		if(in_list) // <page_id> was found in <lru_list>
+		{
+			for(int j = pg_id_idx; j > 0; j--) // loop throught <lru_list> backwards from the "found" index
+				lru_list[j] = lru_list[j-1]; // copy all the elements towards the back but leave index [0] alone
+		}
+		else // <page_id> was NOT found in <lru_list>
+		{
+			for(uint16_t k = (buf_pool_size - 1); k > 0; k--) // loop throught <lru_list> backwards
+				lru_list[k] = lru_list[k-1]; // copy all the elements towards the back but leave index [0] alone
+		}
+		lru_list[0] = page_id; // set the first element in <lru_list> to <page_id>
 	}
 
 
