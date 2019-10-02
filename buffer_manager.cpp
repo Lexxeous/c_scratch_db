@@ -11,31 +11,31 @@
 #include "paging/paging.h"
 #include "buffer_manager.h"
 
-/************************************** IMPLEMENT STRUCTURES *************************************/
+/*********************************** NAMESPACED/GLOBAL VARIABLES *********************************/
 
-namespace Buf
+namespace Buffer
 {
-	// struct buffer_descriptor_t {
-	// 	std::map<uint16_t, page_descriptor_t> buf_pool;
-	// 	uint16_t buf_pool_size;
-	// 	uint16_t num_dirty_pages = 0;
-	// 	uint16_t* lru_list = (uint16_t*)calloc(buf_pool_size, sizeof(uint16_t));
-	// 	bool buf_initialized = false;
-	// 	bool full();
-	// };
+	/* Define "global" namespaced variables ; parameters regarding the current state of the buffer manager layer */
+	std::map<uint16_t, page_descriptor_t> buf_pool; // map a uint16_t <page_id> to a page_descriptor_t containing uint16_t <page_id>, void* page, and bool dirty
+	uint16_t buf_pool_size;
+	uint16_t num_dirty_pages;
+	uint16_t* lru_list;
+	bool buf_initialized;
+	bool buf_full;
 }
-
-/********************************************* MACROS ********************************************/
-
-
 
 /************************************ FUNCTION IMPLEMENTATIONS ***********************************/
 
-namespace Buf
+namespace Buffer
 {
 	void initialize(uint16_t pool_sz)
 	{
+		/* Initialize the buffer manager layer's parameters */
 		buf_pool_size = pool_sz; // initialize the global buffer pool size variable
+		// num_dirty_pages = 0; // DONT INITIALIZE <num_dirty_pages> TO 0, OR THE FUNCTION WILL NOT BE ABLE THROW AN ERROR
+		lru_list = (uint16_t*)calloc(buf_pool_size, sizeof(uint16_t)); 
+		buf_initialized = false;
+		buf_full = false;
 
 		/* Make sure that there are no garbage values in the LRU list */
 		for(int i = 0; i < buf_pool_size; i++)
@@ -114,7 +114,7 @@ namespace Buf
 	// }
 
 
-	uint16_t replace(void* &page)
+	uint16_t replace(file_descriptor_t &pfile, void* &page)
 	{
 		return 0;
 	}
@@ -143,5 +143,26 @@ namespace Buf
 			else{std::cout << lru_list[i];}
 		}
 		std::cout << ']' << std::endl;
+	}
+
+	uint16_t get_buf_pool_size()
+	{
+		return buf_pool_size;
+	}
+
+	uint16_t get_num_dirty_pages()
+	{
+		return num_dirty_pages;
+	}
+
+	bool get_buf_initialized()
+	{
+		return buf_initialized;
+	}
+
+	bool get_buf_full()
+	{
+		buf_full = full();
+		return buf_full;
 	}
 }

@@ -17,40 +17,28 @@
 
 /********************************** GLOBAL/EXTERNAL VARIABLES ************************************/
 
-extern uint16_t buf_pool_size;
-extern uint16_t num_dirty_pages;
-extern uint16_t* lru_list;
-extern bool buf_initialized;
+// extern uint16_t buf_pool_size;
+// extern uint16_t num_dirty_pages;
+// extern uint16_t* lru_list;
+// extern bool buf_initialized;
 
 /************************************** IMPLEMENT STRUCTURES *************************************/
 
-namespace Buf
+namespace Buffer
 {
-	// struct page_descriptor_t
-	// {
-	// 	page_descriptor_t(uint16_t id, void* pg, bool dty) : page_id(id), page(pg), dirty(dty){}; // initial constructor
-	// 	page_descriptor_t() : page(0), dirty(false){}; // default constructor
-	// 	uint16_t page_id;
-	// 	void* page;
-	// 	bool dirty;
-	// };
+	struct page_descriptor_t
+	{
+		page_descriptor_t(uint16_t id, void* pg, bool dty) : page_id(id), page(pg), dirty(dty){}; // initial constructor
+		page_descriptor_t() : page(0), dirty(false){}; // default constructor
+		uint16_t page_id;
+		void* page;
+		bool dirty;
+	};
 }
-
-/****************************************** DATA TYPES *******************************************/
-
-
-
-/****************************************** DEFINITIONS ******************************************/
-
-
-
-/******************************************* CONSTANTS *******************************************/
-
-
 
 /************************************** FUNCTION PROTOTYPES **************************************/
 
-namespace Buf
+namespace Buffer
 {
 	class buffer_error : public std::runtime_error
 	{
@@ -68,7 +56,7 @@ namespace Buf
 	/* If the page is in the LRU list, then remove it and add it to the front. Otherwise just add it to the front. */
 	void LRU_update(uint16_t page_id);
 
-	/* Write the page with is page_id to the file pfile if it is dirty. Indicate that the page is no longer dirty. */
+	/* Write the page with its <page_id> to the file <pfile> if it is dirty. Indicate that the page is no longer dirty. */
 	void flush(file_descriptor_t &pfile, uint16_t page_id);
 
 	/* Write all the pages that are buffered and dirty to the file pfile. Indicate that the flushed pages are no longer dirty. */
@@ -81,13 +69,25 @@ namespace Buf
 	void* buf_read(file_descriptor_t &pfile, int page_id);
 
 	/* Find a page to replace in the LRU list. Flush it if necessary and remove it from the buffer pool and the LRU list. Put its address in page, and return its page_id. */
-	uint16_t replace(void* &page);
+	uint16_t replace(file_descriptor_t &pfile, void* &page);
 
 	/* Helper function that returns true if the buffer pool is full. */
 	bool full();
 
-	/* Helper function that prints the LRU list */
+	/* Helper function that prints the current state of <lru_list> */
 	void print_lru_list();
+
+	/* Helper function for the driver to get the current value of <buf_pool_size> */
+	uint16_t get_buf_pool_size();
+
+	/* Helper function for the driver to get the current value of <num_dirty_pages> */
+	uint16_t get_num_dirty_pages();
+
+	/* Helper function for the driver to get the current value of <buf_initialized> */
+	bool get_buf_initialized();
+
+	/* Helper function for the driver to get the current value of "full()" */
+	bool get_buf_full();
 }
 
 #endif // BUFFER_MANAGER

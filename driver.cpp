@@ -5,10 +5,10 @@
 
 /**************************************** GLOBAL VARIABLES ***************************************/
 
-uint16_t buf_pool_size;
-uint16_t* lru_list = (uint16_t*)calloc(buf_pool_size, sizeof(uint16_t));
-uint16_t num_dirty_pages;
-bool buf_initialized = false;
+// uint16_t buf_pool_size;
+// uint16_t* lru_list = (uint16_t*)calloc(buf_pool_size, sizeof(uint16_t));
+// uint16_t num_dirty_pages;
+// bool buf_initialized = false;
 
 /************************************** DRIVER IMPLEMENTATION ************************************/
 
@@ -20,42 +20,64 @@ int main(int argc, char* argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	uint16_t lru_size = 5;
+
+	void* page_buf; // define the page buffer
+	page_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
+
+	Buffer::page_descriptor_t test_page = Buffer::page_descriptor_t(42, page_buf, false);
+	std::cout << "Test Page ID: " << test_page.page_id << std::endl;
+	std::cout << "Test Page Dirty?: " << test_page.dirty << std::endl;
+
 	// num_dirty_pages = 1;
-	std::cout << buf_initialized << std::endl;
-	Buf::initialize(5);
-	std::cout << buf_initialized << std::endl;
-	Buf::print_lru_list();
+	std::cout << "Buffer Initialized?: " << Buffer::get_buf_initialized() << std::endl;
+	std::cout << "Initializing with LRU size of " << lru_size << "..." << std::endl; 
+	Buffer::initialize(lru_size);
+	std::cout << "Buffer Initialized?: " << Buffer::get_buf_initialized() << std::endl;
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::LRU_update(3);
-	Buf::print_lru_list();
+	Buffer::LRU_update(3);
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::LRU_update(4);
-	Buf::print_lru_list();
+	Buffer::LRU_update(4);
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::LRU_update(3);
-	Buf::print_lru_list();
+	Buffer::LRU_update(3);
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::LRU_update(10);
-	Buf::print_lru_list();
+	Buffer::LRU_update(10);
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::LRU_update(5);
-	Buf::print_lru_list();
+	Buffer::LRU_update(5);
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::LRU_update(7);
-	Buf::print_lru_list();
+	Buffer::LRU_update(7);
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::LRU_update(4);
-	Buf::print_lru_list();
+	Buffer::LRU_update(4);
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::LRU_update(2);
-	Buf::print_lru_list();
+	Buffer::LRU_update(2);
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::LRU_update(5);
-	Buf::print_lru_list();
+	Buffer::LRU_update(5);
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
 
-	Buf::shutdown();
-	Buf::print_lru_list();
-	std::cout << buf_initialized << std::endl;
+	std::cout << "Shutting down..." << std::endl;
+	Buffer::shutdown();
+	Buffer::print_lru_list();
+	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
+	std::cout << "Buffer Initialized?: " << Buffer::get_buf_initialized() << std::endl;
 
 
 	// char* test_db_name = argv[1]; // get the DB file name
