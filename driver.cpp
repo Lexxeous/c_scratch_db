@@ -5,7 +5,7 @@
 
 /**************************************** GLOBAL VARIABLES ***************************************/
 
-std::map<uint16_t, Buffer::page_descriptor_t> buf_pool;
+// std::map<uint16_t, Buffer::page_descriptor_t> buf_pool;
 
 /************************************** DRIVER IMPLEMENTATION ************************************/
 
@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
 	char* test_db_name = argv[1]; // get the DB file name
 	uint16_t lru_size = 3; // set the size of the LRU cache
 	Buffer::initialize(lru_size);
+	Buffer::print_lru_list();
 
 	/********************************* FORMAT THE DB FILE IN BINARY ********************************/
 
@@ -53,9 +54,6 @@ int main(int argc, char* argv[])
 	std::string const_ref_s_0 = "abcdefghijklmnopqrstuvwxyz777"; // 29 characters long
 	std::string &addr_str_0 = const_ref_s_0;
 
-	/* Create page descriptor for page 1 */
-	Buffer::page_descriptor_t page_d_1 = Buffer::page_descriptor_t(rec_0_page_num, page_buf, DEF_NOT_DTY);
-
 	/* Setup and add record 0 */
 	Page_file::pgf_read(pfile, rec_0_page_num, page_buf);
 	Page::rec_begin(s_0);
@@ -64,14 +62,14 @@ int main(int argc, char* argv[])
 	Page::rec_packint(s_0, zip_code_0);
 	Page::rec_finish(s_0);
 	uint16_t rec_id_0 = Page::pg_add_record(page_buf, (void*)s_0.data(), s_0.size()); // reclen = |2|2|4|2|29|2|4| ; L = 45
-	buf_pool.insert(std::pair<uint16_t, Buffer::page_descriptor_t>(rec_0_page_num, page_d_1)); // add page 1 to LRU cache
-	Buffer::print_lru_list();
-	Buffer::buf_write(pfile, rec_0_page_num); // set the dirty bit for page 1 and update the LRU list
-	Buffer::print_lru_list();
-
-
-	// Page_file::pgf_write(pfile, rec_0_page_num, page_buf);
 	std::cout << "Added record " << rec_id_0 << " to page " << rec_0_page_num << std::endl;
+	// Page_file::pgf_write(pfile, rec_0_page_num, page_buf);
+
+	/* Buffering for record 0 on page 1 */
+	Buffer::buf_write(page_buf, rec_0_page_num); // write the page to LRU cache and set its dirty bit
+	Buffer::print_lru_list();
+	Page_file::print(pfile);
+	Buffer::flush(pfile, rec_0_page_num);
 
 	/*********************************** SET UP RECORD #1 TO ADD *********************************/
 

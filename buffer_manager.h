@@ -26,12 +26,11 @@ namespace Buffer
 	struct page_descriptor_t // additional data about a DB page
 	{
 		page_descriptor_t(uint16_t id, void* pg, bool dty) : page_id(id), page(pg), dirty(dty){}; // initial constructor
-		page_descriptor_t() : page(0), dirty(false){}; // default constructor
+		// page_descriptor_t() : page(0), dirty(false){}; // default constructor
 		uint16_t page_id; // page ID (0..N)
 		void* page; // pointer to the starting address of the page
 		bool dirty; // dirty bit ; if dirty == true, contents in RAM differ from disk and must be written back, else contents are the same
 	};
-	extern std::map<uint16_t, page_descriptor_t> buf_pool; // map a uint16_t <page_id> to a page_descriptor_t containing the page ID, pointer to page, and dirty bit
 }
 
 /************************************** FUNCTION PROTOTYPES **************************************/
@@ -61,7 +60,7 @@ namespace Buffer
 	void flush_all(file_descriptor_t &pfile);
 
 	/* Do not actually write the page, but indicate that it is dirty. */
-	void buf_write(file_descriptor_t &pfile, uint16_t page_id);
+	void buf_write(void* page, uint16_t page_id);
 
 	/* If the page with id page_id is already in the buffer, then update its LRU list and return a pointer to its buffer. Otherwise, read it from pfile, update its LRU list, and return a pointer to its buffer. You may have to do page replacement. */
 	void* buf_read(file_descriptor_t &pfile, uint16_t page_id);

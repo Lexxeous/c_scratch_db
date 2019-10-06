@@ -21,7 +21,8 @@ namespace Buffer
 	uint16_t* lru_list;
 	bool buf_initialized;
 	bool buf_full;
-	std::map<uint16_t, page_descriptor_t> buf_pool;
+	std::map<uint16_t, page_descriptor_t> buf_pool;  // map a uint16_t <page_id> to a page_descriptor_t containing the page ID, pointer to page, and dirty bit
+	std::map<uint16_t, page_descriptor_t>::iterator itr;
 }
 
 /************************************ FUNCTION IMPLEMENTATIONS ***********************************/
@@ -92,7 +93,19 @@ namespace Buffer
 
 	void flush(file_descriptor_t &pfile, uint16_t page_id)
 	{
-
+		if(!buf_pool.at(page_id).dirty) // if the page is not dirty
+		{
+			std::cout << "Page " << page_id << " is not dirty." << std::endl;
+			return;
+		}
+		else // page is dirty
+		{
+			std::cout << "Flushing page " << page_id << "..." << std::endl;
+			buf_pool.at(page_id).dirty = 0; // clear the dirty bit for the page
+			num_dirty_pages--; // decrement the total number of dirty pages
+			Page_file::pgf_write(pfile, page_id, buf_pool.at(page_id).page); // write the page to disk (file)
+			LRU_update(page_id); // update <lru_list>
+		}
 	}
 
 
@@ -102,17 +115,18 @@ namespace Buffer
 	}
 
 
-	void buf_write(file_descriptor_t &pfile, uint16_t page_id)
-	{	
-		page_descriptor_t write_page_d = buf_pool[page_id]; // get the page descriptor from the buffer pool
+	void buf_write(void* page, uint16_t page_id)
+	{
+		page_descriptor_t page_d = page_descriptor_t(page_id, page, DEF_NOT_DTY); // create page descriptor
+		buf_pool.insert(std::pair<uint16_t, page_descriptor_t>(page_id, page_d)); // add page descriptor to LRU cache
 
-		if(write_page_d.dirty) // if the page is already dirty
+		if(buf_pool.at(page_id).dirty) // if the page is already dirty
 		{
 			throw buffer_error("Tried to set dirty bit for page that is already dirty.");
 		}
-		else
+		else 
 		{
-			write_page_d.dirty = 1; // set the dirty bit for the page
+			buf_pool.at(page_id).dirty = 1; // set the dirty bit for the page
 			num_dirty_pages++; // increment the total number of dirty pages
 			LRU_update(page_id); // update <lru_list>
 		}
