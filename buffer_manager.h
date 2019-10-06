@@ -85,6 +85,9 @@ namespace Buffer
 
 	/* Helper function for the driver to get the current value of "full()" */
 	bool get_buf_full();
+
+	/* Helper function that throws an error if a page ID exists more than once in the buffer pool */
+	void validate_page_id(uint16_t page_id);
 }
 
 #endif // BUFFER_MANAGER

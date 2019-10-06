@@ -117,26 +117,48 @@ namespace Buffer
 
 	void buf_write(void* page, uint16_t page_id)
 	{
-		page_descriptor_t page_d = page_descriptor_t(page_id, page, DEF_NOT_DTY); // create page descriptor
-		buf_pool.insert(std::pair<uint16_t, page_descriptor_t>(page_id, page_d)); // add page descriptor to LRU cache
+		/* Check if page already exists in the buffer pool or not */
+		if(buf_pool.count(page_id) > 0) // key of <page_id> exists in the buffer pool
+		{
+			validate_page_id(page_id); // make sure that key <page_id> is unique
+			buf_pool.at(page_id).page = page; // update the page pointer
+		}
+		else // key of <page_id> does NOT exist in the buffer pool
+		{
+			page_descriptor_t page_desc = page_descriptor_t(page_id, page, DEF_NOT_DTY); // create a new page descriptor
+			buf_pool.insert(std::pair<uint16_t, page_descriptor_t>(page_id, page_desc)); // add page descriptor to LRU cache
 
-		if(buf_pool.at(page_id).dirty) // if the page is already dirty
-		{
-			throw buffer_error("Tried to set dirty bit for page that is already dirty.");
+			if(buf_pool.at(page_id).dirty) // if the page is already dirty
+			{
+				throw buffer_error("Tried to set dirty bit for page that is already dirty.");
+			}
+			else 
+			{
+				num_dirty_pages++; // increment the total number of dirty pages
+			}
 		}
-		else 
-		{
-			buf_pool.at(page_id).dirty = 1; // set the dirty bit for the page
-			num_dirty_pages++; // increment the total number of dirty pages
-			LRU_update(page_id); // update <lru_list>
-		}
+
+		buf_pool.at(page_id).dirty = 1; // set the dirty bit for the page
+		LRU_update(page_id); // update <lru_list>
 	}
 
 
-	// void* buf_read(file_descriptor_t &pfile, uint16_t page_id)
-	// {
-
-	// }
+	void* buf_read(file_descriptor_t &pfile, uint16_t page_id)
+	{
+		/* Check if page already exists in the buffer pool or not */
+		if(buf_pool.count(page_id) > 0) // key <page_id> exists in the buffer pool
+		{
+			validate_page_id(page_id); // make sure that key <page_id> is unique
+			return buf_pool.at(page_id).page;
+		}
+		else // key <page_id> does NOT exist in the buffer pool
+		{
+			void* read_buf; // define the page buffer
+			read_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
+			Page_file::pgf_read(pfile, page_id, read_buf); // read the empty page from disk (file)
+			return read_buf;
+		}
+	}
 
 
 	uint16_t replace(file_descriptor_t &pfile, void* &page)
@@ -189,5 +211,11 @@ namespace Buffer
 	{
 		buf_full = full();
 		return buf_full;
+	}
+
+	void validate_page_id(uint16_t page_id)
+	{
+		if(buf_pool.count(page_id) > 1)
+			throw buffer_error("There should not be more than one page descriptor with the same page ID in the buffer pool.");
 	}
 }

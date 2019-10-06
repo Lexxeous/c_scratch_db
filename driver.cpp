@@ -55,7 +55,8 @@ int main(int argc, char* argv[])
 	std::string &addr_str_0 = const_ref_s_0;
 
 	/* Setup and add record 0 */
-	Page_file::pgf_read(pfile, rec_0_page_num, page_buf);
+	// Page_file::pgf_read(pfile, rec_0_page_num, page_buf);
+	page_buf = Buffer::buf_read(pfile, rec_0_page_num);
 	Page::rec_begin(s_0);
 	Page::rec_packint(s_0, addr_num_0);
 	Page::rec_packstr(s_0, addr_str_0);
@@ -69,33 +70,40 @@ int main(int argc, char* argv[])
 	Buffer::buf_write(page_buf, rec_0_page_num); // write the page to LRU cache and set its dirty bit
 	Buffer::print_lru_list();
 	Page_file::print(pfile);
-	Buffer::flush(pfile, rec_0_page_num);
+	// Buffer::flush(pfile, rec_0_page_num);
 
 	/*********************************** SET UP RECORD #1 TO ADD *********************************/
 
-	// /* Create the string for the whole of record 1 */
-	// std::string s_1;
+	/* Create the string for the whole of record 1 */
+	std::string s_1;
 
-	// /* Create integer data for record 1 */
-	// int addr_num_1 = 42;
-	// int zip_code_1 = 20470;
-	// int rec_1_page_num = 1;
+	/* Create integer data for record 1 */
+	int addr_num_1 = 42;
+	int zip_code_1 = 20470;
+	int rec_1_page_num = 1;
 
-	// /* Create reference string(s) for string data for record 1 */
-	// std::string const_ref_s_1 = "P Sherman Wallaby Way, Sydney"; // 29 characters long
-	// std::string &addr_str_1 = const_ref_s_1;
+	/* Create reference string(s) for string data for record 1 */
+	std::string const_ref_s_1 = "P Sherman Wallaby Way, Sydney"; // 29 characters long
+	std::string &addr_str_1 = const_ref_s_1;
 
-	// /* Setup and add record 1 */
+	/* Setup and add record 1 */
 	// Page_file::pgf_read(pfile, rec_1_page_num, page_buf);
-	// Page::rec_begin(s_1);
-	// Page::rec_packint(s_1, addr_num_1);
-	// Page::rec_packstr(s_1, addr_str_1);
-	// Page::rec_packint(s_1, zip_code_1);
-	// Page::rec_finish(s_1);
-	// uint16_t rec_id_1 = Page::pg_add_record(page_buf, (void*)s_1.data(), 45); // reclen = |2|2|4|2|29|2|4| ; L = 45
+	page_buf = Buffer::buf_read(pfile, rec_1_page_num);
+	Page::rec_begin(s_1);
+	Page::rec_packint(s_1, addr_num_1);
+	Page::rec_packstr(s_1, addr_str_1);
+	Page::rec_packint(s_1, zip_code_1);
+	Page::rec_finish(s_1);
+	uint16_t rec_id_1 = Page::pg_add_record(page_buf, (void*)s_1.data(), s_1.size()); // reclen = |2|2|4|2|29|2|4| ; L = 45
+	std::cout << "Added record " << rec_id_1 << " to page " << rec_1_page_num << std::endl;
 	// Page_file::pgf_write(pfile, rec_1_page_num, page_buf);
-	// std::cout << "Added record " << rec_id_1 << " to page " << rec_1_page_num << std::endl;
 
+	/* Buffering for record 1 on page 1 */
+	Buffer::buf_write(page_buf, rec_1_page_num); // write the page to LRU cache and set its dirty bit
+	Buffer::print_lru_list();
+	Page_file::print(pfile);
+	Buffer::flush(pfile, rec_1_page_num);
+	
 	/*********************************** SET UP RECORD #2 TO ADD *********************************/
 
 	// /* Create the string for the whole of record 2 */
