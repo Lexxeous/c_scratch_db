@@ -31,6 +31,8 @@ namespace Buffer
 {
 	void initialize(uint16_t pool_sz)
 	{
+		std::cout << std::endl << "Initializing buffer manager..." << std::endl;
+
 		/* Initialize the buffer manager layer's parameters */
 		buf_pool_size = pool_sz; // initialize the global buffer pool size variable
 		// num_dirty_pages = 0; // DONT INITIALIZE <num_dirty_pages> TO 0, OR THE FUNCTION WILL NOT BE ABLE THROW AN ERROR
@@ -50,15 +52,21 @@ namespace Buffer
 	}
 
 
-	void shutdown(/*file_descriptor_t &pfile*/)
+	void shutdown(file_descriptor_t &pfile)
 	{
-		buf_initialized = false;
+		std::cout << std::endl << "Shutting down buffer manager..." << std::endl;
 
-		/* clear all the values in <lru_list> */
+		flush_all(pfile); // flush all pages to disk (file)
+
+		/* Clear all the values in <lru_list> */
 		for(int i = 0; i < buf_pool_size; i++)
 		{
 			lru_list[i] = 0;
 		}
+
+		buf_pool.clear(); // delete all pages from the pool
+
+		buf_initialized = false; // uninitialize the buffer manager
 	}
 
 

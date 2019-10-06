@@ -48,7 +48,7 @@ namespace Buffer
 	void initialize(uint16_t pool_sz);
 
 	/* Flush all the pages to pfile and delete them from the pool. Also clear the LRU list and indicate that the buffer manager is not initialized. */
-	void shutdown(/*file_descriptor_t &pfile*/);
+	void shutdown(file_descriptor_t &pfile);
 
 	/* If the page is in the LRU list, then remove it and add it to the front. Otherwise just add it to the front. */
 	void LRU_update(uint16_t page_id);

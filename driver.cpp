@@ -185,10 +185,6 @@ int main(int argc, char* argv[])
 	Buffer::print_lru_list();
 	Page_file::print(pfile);
 
-	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
-	Buffer::flush_all(pfile);
-	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
-
 	/************************************** DELETE SOME RECORDS ************************************/
 
 	// int del_page_num_2 = 2;
@@ -203,6 +199,10 @@ int main(int argc, char* argv[])
 	// Page_file::pgf_write(pfile, del_page_num_3, page_buf); // write page 3
 
 	/*************************************** PRINT THE RECORDS *************************************/
+
+	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
+	Buffer::shutdown(pfile);
+	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
 
 	Page_file::print(pfile);
 
