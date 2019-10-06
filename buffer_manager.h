@@ -15,32 +15,30 @@
 
 #include "paging/paging.h"
 
-/********************************** GLOBAL/EXTERNAL VARIABLES ************************************/
+/****************************************** DEFINITIONS ******************************************/
 
-// extern uint16_t buf_pool_size;
-// extern uint16_t num_dirty_pages;
-// extern uint16_t* lru_list;
-// extern bool buf_initialized;
+#define DEF_NOT_DTY false // default clear dirty bit for <page_descriptor_t> constructor
 
 /************************************** IMPLEMENT STRUCTURES *************************************/
 
 namespace Buffer
 {
-	struct page_descriptor_t
+	struct page_descriptor_t // additional data about a DB page
 	{
 		page_descriptor_t(uint16_t id, void* pg, bool dty) : page_id(id), page(pg), dirty(dty){}; // initial constructor
 		page_descriptor_t() : page(0), dirty(false){}; // default constructor
-		uint16_t page_id;
-		void* page;
-		bool dirty;
+		uint16_t page_id; // page ID (0..N)
+		void* page; // pointer to the starting address of the page
+		bool dirty; // dirty bit ; if dirty == true, contents in RAM differ from disk and must be written back, else contents are the same
 	};
+	extern std::map<uint16_t, page_descriptor_t> buf_pool; // map a uint16_t <page_id> to a page_descriptor_t containing the page ID, pointer to page, and dirty bit
 }
 
 /************************************** FUNCTION PROTOTYPES **************************************/
 
 namespace Buffer
 {
-	class buffer_error : public std::runtime_error
+	class buffer_error : public std::runtime_error // runtime error function(s) to indicate a failure at the buffering layer
 	{
   	public:
 	    buffer_error(std::string what) : std::runtime_error(what) {}
@@ -63,10 +61,10 @@ namespace Buffer
 	void flush_all(file_descriptor_t &pfile);
 
 	/* Do not actually write the page, but indicate that it is dirty. */
-	void buf_write(file_descriptor_t &pfile, int page_id);
+	void buf_write(file_descriptor_t &pfile, uint16_t page_id);
 
 	/* If the page with id page_id is already in the buffer, then update its LRU list and return a pointer to its buffer. Otherwise, read it from pfile, update its LRU list, and return a pointer to its buffer. You may have to do page replacement. */
-	void* buf_read(file_descriptor_t &pfile, int page_id);
+	void* buf_read(file_descriptor_t &pfile, uint16_t page_id);
 
 	/* Find a page to replace in the LRU list. Flush it if necessary and remove it from the buffer pool and the LRU list. Put its address in page, and return its page_id. */
 	uint16_t replace(file_descriptor_t &pfile, void* &page);

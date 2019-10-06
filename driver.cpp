@@ -5,133 +5,78 @@
 
 /**************************************** GLOBAL VARIABLES ***************************************/
 
-// uint16_t buf_pool_size;
-// uint16_t* lru_list = (uint16_t*)calloc(buf_pool_size, sizeof(uint16_t));
-// uint16_t num_dirty_pages;
-// bool buf_initialized = false;
+std::map<uint16_t, Buffer::page_descriptor_t> buf_pool;
 
 /************************************** DRIVER IMPLEMENTATION ************************************/
 
 int main(int argc, char* argv[])
 {
+
+	/**************************************** ERROR CHECKING ***************************************/
+
 	if(argc != 2)
 	{
 		printf("ERROR: Wrong number of command line arguments. Use ./<executable> <db_file> as format.");
 		exit(EXIT_FAILURE);
 	}
 
-	uint16_t lru_size = 5;
+	/******************************************** SETUP ********************************************/
+
+	char* test_db_name = argv[1]; // get the DB file name
+	uint16_t lru_size = 3; // set the size of the LRU cache
+	Buffer::initialize(lru_size);
+
+	/********************************* FORMAT THE DB FILE IN BINARY ********************************/
+
+	uint16_t ref_num = 6;
+	uint16_t &num_pages = ref_num;
+	Page_file::pgf_format(test_db_name, num_pages);
+
+	/********************************* PAGE BUFFER AND OPEN DB FILE ********************************/
 
 	void* page_buf; // define the page buffer
 	page_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
+	std::fstream pfile; // define the DB file for reading and writing
+	pfile.open(test_db_name); // open the pages file
 
-	Buffer::page_descriptor_t test_page = Buffer::page_descriptor_t(42, page_buf, false);
-	std::cout << "Test Page ID: " << test_page.page_id << std::endl;
-	std::cout << "Test Page Dirty?: " << test_page.dirty << std::endl;
+	/************************************ SET UP RECORD #0 TO ADD **********************************/
 
-	// num_dirty_pages = 1;
-	std::cout << "Buffer Initialized?: " << Buffer::get_buf_initialized() << std::endl;
-	std::cout << "Initializing with LRU size of " << lru_size << "..." << std::endl; 
-	Buffer::initialize(lru_size);
-	std::cout << "Buffer Initialized?: " << Buffer::get_buf_initialized() << std::endl;
+	/* Create the string for the whole of record 0 */
+	std::string s_0;
+
+	/* Create integer data for record 0 */
+	int addr_num_0 = 150;
+	int zip_code_0 = 38501;
+	uint16_t rec_0_page_num = 1;
+
+	/* Create reference string(s) for string data for record 0 */
+	std::string const_ref_s_0 = "abcdefghijklmnopqrstuvwxyz777"; // 29 characters long
+	std::string &addr_str_0 = const_ref_s_0;
+
+	/* Create page descriptor for page 1 */
+	Buffer::page_descriptor_t page_d_1 = Buffer::page_descriptor_t(rec_0_page_num, page_buf, DEF_NOT_DTY);
+
+	/* Setup and add record 0 */
+	Page_file::pgf_read(pfile, rec_0_page_num, page_buf);
+	Page::rec_begin(s_0);
+	Page::rec_packint(s_0, addr_num_0);
+	Page::rec_packstr(s_0, addr_str_0);
+	Page::rec_packint(s_0, zip_code_0);
+	Page::rec_finish(s_0);
+	uint16_t rec_id_0 = Page::pg_add_record(page_buf, (void*)s_0.data(), s_0.size()); // reclen = |2|2|4|2|29|2|4| ; L = 45
+	buf_pool.insert(std::pair<uint16_t, Buffer::page_descriptor_t>(rec_0_page_num, page_d_1)); // add page 1 to LRU cache
 	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	Buffer::LRU_update(3);
+	Buffer::buf_write(pfile, rec_0_page_num); // set the dirty bit for page 1 and update the LRU list
 	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	Buffer::LRU_update(4);
-	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	Buffer::LRU_update(3);
-	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	Buffer::LRU_update(10);
-	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	Buffer::LRU_update(5);
-	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	Buffer::LRU_update(7);
-	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	Buffer::LRU_update(4);
-	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	Buffer::LRU_update(2);
-	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	Buffer::LRU_update(5);
-	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-
-	std::cout << "Shutting down..." << std::endl;
-	Buffer::shutdown();
-	Buffer::print_lru_list();
-	std::cout << "Full?: " << Buffer::get_buf_full() << std::endl;
-	std::cout << "Buffer Initialized?: " << Buffer::get_buf_initialized() << std::endl;
 
 
-	// char* test_db_name = argv[1]; // get the DB file name
-
-	// /******************************** FORMAT THE DB FILE IN BINARY *******************************/
-
-	// uint16_t ref_num = 6;
-	// uint16_t &num_pages = ref_num;
-	// Page_file::pgf_format(test_db_name, num_pages);
-
-	// /******************************** PAGE BUFFER AND OPEN DB FILE *******************************/
-
-	// void* page_buf; // define the page buffer
-	// page_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
-	// std::fstream pfile; // define the DB file for reading and writing
-	// pfile.open(test_db_name); // open the pages file
-
-	// /*********************************** SET UP RECORD #0 TO ADD *********************************/
-
-	// /* Create the string for the whole of record 0 */
-	// std::string s_0;
-
-	// /* Create <next> reference for unpacking record 0 */
-	// // uint16_t ref_next_0 = 2;
-	// // uint16_t &next_0 = ref_next_0;
-
-	// /* Create integer data for record 0 */
-	// int addr_num_0 = 150;
-	// int zip_code_0 = 38501;
-	// int rec_0_page_num = 1;
-
-	// /* Create reference string(s) for string data for record 0 */
-	// std::string const_ref_s_0 = "abcdefghijklmnopqrstuvwxyz777"; // 29 characters long
-	// std::string &addr_str_0 = const_ref_s_0;
-
-	// /* Setup and add record 0 */
-	// Page_file::pgf_read(pfile, rec_0_page_num, page_buf);
-	// Page::rec_begin(s_0/*, next_0*/);
-	// Page::rec_packint(s_0, addr_num_0);
-	// Page::rec_packstr(s_0, addr_str_0);
-	// Page::rec_packint(s_0, zip_code_0);
-	// Page::rec_finish(s_0);
-	// uint16_t rec_id_0 = Page::pg_add_record(page_buf, (void*)s_0.data(), 45); // reclen = |2|2|4|2|29|2|4| ; L = 45
 	// Page_file::pgf_write(pfile, rec_0_page_num, page_buf);
-	// std::cout << "Added record " << rec_id_0 << " to page " << rec_0_page_num << std::endl;
+	std::cout << "Added record " << rec_id_0 << " to page " << rec_0_page_num << std::endl;
 
-	// /*********************************** SET UP RECORD #1 TO ADD *********************************/
+	/*********************************** SET UP RECORD #1 TO ADD *********************************/
 
 	// /* Create the string for the whole of record 1 */
 	// std::string s_1;
-
-	// /* Create <next> reference for unpacking record 1 */
-	// // uint16_t ref_next_1 = 2;
-	// // uint16_t &next_1 = ref_next_1;
 
 	// /* Create integer data for record 1 */
 	// int addr_num_1 = 42;
@@ -144,7 +89,7 @@ int main(int argc, char* argv[])
 
 	// /* Setup and add record 1 */
 	// Page_file::pgf_read(pfile, rec_1_page_num, page_buf);
-	// Page::rec_begin(s_1/*, next_1*/);
+	// Page::rec_begin(s_1);
 	// Page::rec_packint(s_1, addr_num_1);
 	// Page::rec_packstr(s_1, addr_str_1);
 	// Page::rec_packint(s_1, zip_code_1);
@@ -153,14 +98,10 @@ int main(int argc, char* argv[])
 	// Page_file::pgf_write(pfile, rec_1_page_num, page_buf);
 	// std::cout << "Added record " << rec_id_1 << " to page " << rec_1_page_num << std::endl;
 
-	// /*********************************** SET UP RECORD #2 TO ADD *********************************/
+	/*********************************** SET UP RECORD #2 TO ADD *********************************/
 
 	// /* Create the string for the whole of record 2 */
 	// std::string s_2;
-
-	// /* Create <next> reference for unpacking record 2 */
-	// // uint16_t ref_next_2 = 2;
-	// // uint16_t &next_2 = ref_next_2;
 
 	// /* Create integer data for record 2 */
 	// int addr_num_2 = 666;
@@ -173,7 +114,7 @@ int main(int argc, char* argv[])
 
 	// /* Setup and add record 2 */
 	// Page_file::pgf_read(pfile, rec_2_page_num, page_buf);
-	// Page::rec_begin(s_2/*, next_2*/);
+	// Page::rec_begin(s_2);
 	// Page::rec_packint(s_2, addr_num_2);
 	// Page::rec_packstr(s_2, addr_str_2);
 	// Page::rec_packint(s_2, zip_code_2);
@@ -182,14 +123,10 @@ int main(int argc, char* argv[])
 	// Page_file::pgf_write(pfile, rec_2_page_num, page_buf);
 	// std::cout << "Added record " << rec_id_2 << " to page " << rec_2_page_num << std::endl;
 
-	// /*********************************** SET UP RECORD #3 TO ADD *********************************/
+	/*********************************** SET UP RECORD #3 TO ADD *********************************/
 
 	// /* Create the string for the whole of record 3 */
 	// std::string s_3;
-
-	// /* Create <next> reference for unpacking record 3 */
-	// // uint16_t ref_next_3 = 2;
-	// // uint16_t &next_3 = ref_next_3;
 
 	// /* Create integer data for record 3 */
 	// int addr_num_3 = 752;
@@ -202,7 +139,7 @@ int main(int argc, char* argv[])
 
 	// /* Setup and add record 3 */
 	// Page_file::pgf_read(pfile, rec_3_page_num, page_buf);
-	// Page::rec_begin(s_3/*, next_3*/);
+	// Page::rec_begin(s_3);
 	// Page::rec_packint(s_3, addr_num_3);
 	// Page::rec_packstr(s_3, addr_str_3);
 	// Page::rec_packint(s_3, zip_code_3);
@@ -211,14 +148,10 @@ int main(int argc, char* argv[])
 	// Page_file::pgf_write(pfile, rec_3_page_num, page_buf);
 	// std::cout << "Added record " << rec_id_3 << " to page " << rec_3_page_num << std::endl;
 
-	// /*********************************** SET UP RECORD #4 TO ADD *********************************/
+	/*********************************** SET UP RECORD #4 TO ADD *********************************/
 
 	// /* Create the string for the whole of record 4 */
 	// std::string s_4;
-
-	// /* Create <next> reference for unpacking record 4 */
-	// // uint16_t ref_next_4 = 2;
-	// // uint16_t &next_4 = ref_next_4;
 
 	// /* Create integer data for record 4 */
 	// int addr_num_4 = 123;
@@ -231,7 +164,7 @@ int main(int argc, char* argv[])
 
 	// /* Setup and add record 4 */
 	// Page_file::pgf_read(pfile, rec_4_page_num, page_buf);
-	// Page::rec_begin(s_4/*, next_4*/);
+	// Page::rec_begin(s_4);
 	// Page::rec_packint(s_4, addr_num_4);
 	// Page::rec_packstr(s_4, addr_str_4);
 	// Page::rec_packint(s_4, zip_code_4);
@@ -240,7 +173,7 @@ int main(int argc, char* argv[])
 	// Page_file::pgf_write(pfile, rec_4_page_num, page_buf);
 	// std::cout << "Added record " << rec_id_4 << " to page " << rec_4_page_num << std::endl;
 
-	// /************************************** DELETE SOME RECORDS ************************************/
+	/************************************** DELETE SOME RECORDS ************************************/
 
 	// int del_page_num_2 = 2;
 	// int del_page_num_3 = 3;
@@ -253,10 +186,10 @@ int main(int argc, char* argv[])
 	// Page::pg_del_record(page_buf, 0); // delete record at index 0
 	// Page_file::pgf_write(pfile, del_page_num_3, page_buf); // write page 3
 
-	// /*************************************** PRINT THE RECORDS *************************************/
+	/*************************************** PRINT THE RECORDS *************************************/
 
-	// Page_file::print(pfile);
+	Page_file::print(pfile);
 
-	// pfile.close();
+	pfile.close();
 	return 0;
 }

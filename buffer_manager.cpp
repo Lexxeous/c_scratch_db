@@ -16,12 +16,12 @@
 namespace Buffer
 {
 	/* Define "global" namespaced variables ; parameters regarding the current state of the buffer manager layer */
-	std::map<uint16_t, page_descriptor_t> buf_pool; // map a uint16_t <page_id> to a page_descriptor_t containing uint16_t <page_id>, void* page, and bool dirty
 	uint16_t buf_pool_size;
 	uint16_t num_dirty_pages;
 	uint16_t* lru_list;
 	bool buf_initialized;
 	bool buf_full;
+	std::map<uint16_t, page_descriptor_t> buf_pool;
 }
 
 /************************************ FUNCTION IMPLEMENTATIONS ***********************************/
@@ -102,13 +102,24 @@ namespace Buffer
 	}
 
 
-	void buf_write(file_descriptor_t &pfile, int page_id)
-	{
+	void buf_write(file_descriptor_t &pfile, uint16_t page_id)
+	{	
+		page_descriptor_t write_page_d = buf_pool[page_id]; // get the page descriptor from the buffer pool
 
+		if(write_page_d.dirty) // if the page is already dirty
+		{
+			throw buffer_error("Tried to set dirty bit for page that is already dirty.");
+		}
+		else
+		{
+			write_page_d.dirty = 1; // set the dirty bit for the page
+			num_dirty_pages++; // increment the total number of dirty pages
+			LRU_update(page_id); // update <lru_list>
+		}
 	}
 
 
-	// void* buf_read(file_descriptor_t &pfile, int page_id)
+	// void* buf_read(file_descriptor_t &pfile, uint16_t page_id)
 	// {
 
 	// }
