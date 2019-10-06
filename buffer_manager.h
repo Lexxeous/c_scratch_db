@@ -71,22 +71,22 @@ namespace Buffer
 	/* Helper function that returns true if the buffer pool is full. */
 	bool full();
 
-	/* Helper function that prints the current state of <lru_list> */
+	/* Helper function that prints the current state of <lru_list> for debugging within "driver.cpp". */
 	void print_lru_list();
 
-	/* Helper function for the driver to get the current value of <buf_pool_size> */
+	/* Helper function for the driver to get the current value of <buf_pool_size> for debugging within "driver.cpp". */
 	uint16_t get_buf_pool_size();
 
-	/* Helper function for the driver to get the current value of <num_dirty_pages> */
+	/* Helper function for the driver to get the current value of <num_dirty_pages> for debugging within "driver.cpp". */
 	uint16_t get_num_dirty_pages();
 
-	/* Helper function for the driver to get the current value of <buf_initialized> */
+	/* Helper function for the driver to get the current value of <buf_initialized> for debugging within "driver.cpp". */
 	bool get_buf_initialized();
 
-	/* Helper function for the driver to get the current value of "full()" */
+	/* Helper function for the driver to get the current value of "full()" for debugging within "driver.cpp". */
 	bool get_buf_full();
 
-	/* Helper function that throws an error if a page ID exists more than once in the buffer pool */
+	/* Helper function that throws an error if a page ID exists more than once in the buffer pool. */
 	void validate_page_id(uint16_t page_id);
 }
 

@@ -100,7 +100,7 @@ namespace Buffer
 		}
 		else // page is dirty
 		{
-			std::cout << "Flushing page " << page_id << "..." << std::endl;
+			std::cout << std::endl << "Flushing page " << page_id << "..." << std::endl;
 			buf_pool.at(page_id).dirty = 0; // clear the dirty bit for the page
 			num_dirty_pages--; // decrement the total number of dirty pages
 			Page_file::pgf_write(pfile, page_id, buf_pool.at(page_id).page); // write the page to disk (file)
@@ -111,7 +111,29 @@ namespace Buffer
 
 	void flush_all(file_descriptor_t &pfile)
 	{
-
+		std::cout << std::endl << "Flushing all pages from LRU cache..." << std::endl;
+		for(int i = 0; i < buf_pool_size; i++)
+		{
+			if(lru_list[i] > 0) // if page is in LRU cache
+			{
+				if(buf_pool.at(lru_list[i]).dirty) // if page is dirty and needs to be written back to disk (file)
+				{
+					std::cout << "Flushing page " << lru_list[i] << "..." << std::endl;
+					buf_pool.at(lru_list[i]).dirty = 0; // clear the dirty bit for the page
+					num_dirty_pages--; // decrement the total number of dirty pages
+					Page_file::pgf_write(pfile, lru_list[i], buf_pool.at(lru_list[i]).page); // write the page to disk (file)
+				}
+				else
+				{
+					std::cout << "Page " << lru_list[i] << " is not dirty." << std::endl;
+					continue; // go to the next page in the buffer pool
+				}
+			}
+			else // <lru_list> slot is free
+			{
+				break; // break out of the loop because rest of LRU slots will also be 0
+			}
+		}
 	}
 
 
@@ -149,7 +171,7 @@ namespace Buffer
 		if(buf_pool.count(page_id) > 0) // key <page_id> exists in the buffer pool
 		{
 			validate_page_id(page_id); // make sure that key <page_id> is unique
-			return buf_pool.at(page_id).page;
+			return buf_pool.at(page_id).page; // return pointer to the already dirty page in LRU cache
 		}
 		else // key <page_id> does NOT exist in the buffer pool
 		{
@@ -183,7 +205,7 @@ namespace Buffer
 
 	void print_lru_list()
 	{
-		std::cout << '[';
+		std::cout << std::endl << "LRU list: " << '[';
 		for(int i = 0; i < buf_pool_size; i++)
 		{
 			if(i < buf_pool_size - 1){std::cout << lru_list[i] << ", ";}
