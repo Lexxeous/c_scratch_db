@@ -22,7 +22,6 @@ namespace Buffer
 	bool buf_initialized;
 	bool buf_full;
 	std::map<uint16_t, page_descriptor_t> buf_pool;  // map a uint16_t <page_id> to a page_descriptor_t containing the page ID, pointer to page, and dirty bit
-	std::map<uint16_t, page_descriptor_t>::iterator itr;
 }
 
 /************************************ FUNCTION IMPLEMENTATIONS ***********************************/
@@ -144,48 +143,44 @@ namespace Buffer
 	}
 
 
-	void buf_write(void* page, uint16_t page_id) // SHOULD ONLY SET THE DIRTY BIT
+	void buf_write(file_descriptor_t &pfile, uint16_t page_id) // SHOULD ONLY SET THE DIRTY BIT
 	{
 		/* Check if page already exists in the buffer pool or not */
 		if(buf_pool.count(page_id) > 0) // key of <page_id> exists in the buffer pool
 		{
 			validate_page_id(page_id); // make sure that key <page_id> is unique
-			buf_pool.at(page_id).page = page; // update the page pointer
-		}
-		else // key of <page_id> does NOT exist in the buffer pool
-		{
-			page_descriptor_t page_desc = page_descriptor_t(page_id, page, DEF_NOT_DTY); // create a new page descriptor
-			buf_pool.insert(std::pair<uint16_t, page_descriptor_t>(page_id, page_desc)); // add page descriptor to LRU cache
-
 			if(buf_pool.at(page_id).dirty) // if the page is already dirty
-			{
 				throw buffer_error("Tried to set dirty bit for page that is already dirty.");
-			}
 			else 
 			{
 				num_dirty_pages++; // increment the total number of dirty pages
+				buf_pool.at(page_id).dirty = 1; // set the dirty bit for the page
+				LRU_update(page_id); // update <lru_list>
 			}
 		}
-
-		buf_pool.at(page_id).dirty = 1; // set the dirty bit for the page
-		LRU_update(page_id); // update <lru_list>
+		else // key of <page_id> does NOT exist in the buffer pool
+			throw buffer_error("Page does not exist in the LRU cache buffer pool and therefore cannot be dirty.");
 	}
 
 	// BUF_READ MAY ALSO HAVE TO REPLACE A PAGE IN THE LRU LIST IF IT IS FULL AND FLUSH THAT INDIVIDUAL PAGE TO DISK (FILE)
-	void* buf_read(file_descriptor_t &pfile, uint16_t page_id)// THIS FUNCTION SHOULD BE THE ONE THAT INSERTS AND BUFFERS THE PAGE IN THE BUFFER POOL
+	void* buf_read(file_descriptor_t &pfile, uint16_t page_id) // THIS FUNCTION SHOULD BE THE ONE THAT INSERTS AND BUFFERS THE PAGE IN THE BUFFER POOL
 	{
 		/* Check if page already exists in the buffer pool or not */
 		if(buf_pool.count(page_id) > 0) // key <page_id> exists in the buffer pool
 		{
 			validate_page_id(page_id); // make sure that key <page_id> is unique
-			return buf_pool.at(page_id).page; // return pointer to the already dirty page in LRU cache
+			LRU_update(page_id); // update the LRU cache before returning the pointer to the page
+			return buf_pool.at(page_id).page; // return pointer to the page in LRU cache
 		}
 		else // key <page_id> does NOT exist in the buffer pool
 		{
 			void* read_buf; // define the page buffer
 			read_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
 			Page_file::pgf_read(pfile, page_id, read_buf); // read the empty page from disk (file)
-			return read_buf;
+			page_descriptor_t page_desc = page_descriptor_t(page_id, read_buf, DEF_NOT_DTY); // create a new page descriptor
+			buf_pool.insert(std::pair<uint16_t, page_descriptor_t>(page_id, page_desc)); // add page descriptor to LRU cache
+			LRU_update(page_id); // update the LRU cache before returning the pointer to the page
+			return read_buf; // return pointer to the empty page read from disk (file)
 		}
 	}
 
@@ -198,7 +193,7 @@ namespace Buffer
 
 	bool full()
 	{
-		bool has_zero = true;
+		bool has_zero = true; // assume that LRU cache is not full by default
 		for(int i = 0; i < buf_pool_size; i++)
 		{
 			if(lru_list[i] == 0) // there is at least 1 zero (empty slot) in <lru list>

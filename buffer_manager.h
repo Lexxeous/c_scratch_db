@@ -60,7 +60,7 @@ namespace Buffer
 	void flush_all(file_descriptor_t &pfile);
 
 	/* Do not actually write the page, but indicate that it is dirty. */
-	void buf_write(void* page, uint16_t page_id);
+	void buf_write(file_descriptor_t &pfile, uint16_t page_id);
 
 	/* If the page with id page_id is already in the buffer, then update its LRU list and return a pointer to its buffer. Otherwise, read it from pfile, update its LRU list, and return a pointer to its buffer. You may have to do page replacement. */
 	void* buf_read(file_descriptor_t &pfile, uint16_t page_id);
