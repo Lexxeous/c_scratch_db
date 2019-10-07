@@ -88,6 +88,9 @@ namespace Buffer
 
 	/* Helper function that throws an error if a page ID exists more than once in the buffer pool. */
 	void validate_page_id(uint16_t page_id);
+
+	/* Helper function that prints the current state of <buf_pool> */
+	void print_buf_pool();
 }
 
 #endif // BUFFER_MANAGER

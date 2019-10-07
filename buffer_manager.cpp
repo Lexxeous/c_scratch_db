@@ -112,7 +112,6 @@ namespace Buffer
 			buf_pool.at(page_id).dirty = 0; // clear the dirty bit for the page
 			num_dirty_pages--; // decrement the total number of dirty pages
 			Page_file::pgf_write(pfile, page_id, buf_pool.at(page_id).page); // write the page to disk (file)
-			LRU_update(page_id); // update <lru_list>
 		}
 	}
 
@@ -145,7 +144,7 @@ namespace Buffer
 	}
 
 
-	void buf_write(void* page, uint16_t page_id)
+	void buf_write(void* page, uint16_t page_id) // SHOULD ONLY SET THE DIRTY BIT
 	{
 		/* Check if page already exists in the buffer pool or not */
 		if(buf_pool.count(page_id) > 0) // key of <page_id> exists in the buffer pool
@@ -172,8 +171,8 @@ namespace Buffer
 		LRU_update(page_id); // update <lru_list>
 	}
 
-
-	void* buf_read(file_descriptor_t &pfile, uint16_t page_id)
+	// BUF_READ MAY ALSO HAVE TO REPLACE A PAGE IN THE LRU LIST IF IT IS FULL AND FLUSH THAT INDIVIDUAL PAGE TO DISK (FILE)
+	void* buf_read(file_descriptor_t &pfile, uint16_t page_id)// THIS FUNCTION SHOULD BE THE ONE THAT INSERTS AND BUFFERS THE PAGE IN THE BUFFER POOL
 	{
 		/* Check if page already exists in the buffer pool or not */
 		if(buf_pool.count(page_id) > 0) // key <page_id> exists in the buffer pool
@@ -247,5 +246,20 @@ namespace Buffer
 	{
 		if(buf_pool.count(page_id) > 1)
 			throw buffer_error("There should not be more than one page descriptor with the same page ID in the buffer pool.");
+	}
+
+	void print_buf_pool()
+	{
+		std::cout << std::endl << "Current state of the buffer pool..." << std::endl;
+		for(std::map<uint16_t, page_descriptor_t>::iterator itr = buf_pool.begin(); itr != buf_pool.end(); itr++)
+		{
+		  std::cout << "Entry " << itr->first \
+		  					<< " = {Key: " << itr->first \
+		  					<< " => [Page ID: " << (itr->second).page_id \
+		  					<< ", Page Address: " << (itr->second).page \
+		  					<< ", Dirty: " << (itr->second).dirty \
+		  					<< "]}" << std::endl;
+		}
+		std::cout << std::endl;
 	}
 }

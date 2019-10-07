@@ -200,6 +200,7 @@ int main(int argc, char* argv[])
 
 	/*************************************** PRINT THE RECORDS *************************************/
 
+	Buffer::print_buf_pool();
 	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
 	Buffer::shutdown(pfile);
 	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
