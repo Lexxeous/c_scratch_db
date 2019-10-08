@@ -19,13 +19,13 @@ int main(int argc, char* argv[])
 	/******************************************** SETUP ********************************************/
 
 	char* test_db_name = argv[1]; // get the DB file name
-	uint16_t lru_size = 3; // set the size of the LRU cache
+	uint16_t lru_size = 2; // set the size of the LRU cache
 	Buffer::initialize(lru_size);
 	Buffer::print_lru_list();
 
 	/********************************* FORMAT THE DB FILE IN BINARY ********************************/
 
-	uint16_t ref_num = 6;
+	uint16_t ref_num = 6; // the number of pages for the DB file
 	uint16_t &num_pages = ref_num;
 	Page_file::pgf_format(test_db_name, num_pages);
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 	Buffer::print_lru_list();
 	Page_file::print(pfile);
 
-	/*********************************** SET UP RECORD #1 TO ADD *********************************/
+	/************************************ SET UP RECORD #1 TO ADD **********************************/
 
 	/* Create the string for the whole of record 1 */
 	std::string s_1;
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 	Buffer::print_lru_list();
 	Page_file::print(pfile);
 
-	/*********************************** SET UP RECORD #2 TO ADD *********************************/
+	/************************************ SET UP RECORD #2 TO ADD **********************************/
 
 	/* Create the string for the whole of record 2 */
 	std::string s_2;
@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
 	Buffer::print_lru_list();
 	Page_file::print(pfile);
 
-	/*********************************** SET UP RECORD #3 TO ADD *********************************/
+	/************************************ SET UP RECORD #3 TO ADD **********************************/
 
 	/* Create the string for the whole of record 3 */
 	std::string s_3;
@@ -146,11 +146,12 @@ int main(int argc, char* argv[])
 	Buffer::print_lru_list();
 	Page_file::print(pfile);
 
+	/* Flush an individual page (page 2) */
 	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
 	Buffer::flush(pfile, rec_3_page_num);
 	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
 
-	/*********************************** SET UP RECORD #4 TO ADD *********************************/
+	/************************************ SET UP RECORD #4 TO ADD **********************************/
 
 	/* Create the string for the whole of record 4 */
 	std::string s_4;
@@ -174,22 +175,9 @@ int main(int argc, char* argv[])
 	uint16_t rec_id_4 = Page::pg_add_record(page_buf, (void*)s_4.data(), s_4.size()); // reclen = |2|2|4|2|23|2|4| ; L = 39
 	std::cout << "Added record " << rec_id_4 << " to page " << rec_4_page_num << std::endl;
 
-	Buffer::buf_write(pfile, rec_4_page_num); // set the dirty bit for the page at <page_id>
+	Buffer::buf_write(pfile, rec_4_page_num); // set the dirty bit for page 3
 	Buffer::print_lru_list();
 	Page_file::print(pfile);
-
-	/************************************** DELETE SOME RECORDS ************************************/
-
-	// int del_page_num_2 = 2;
-	// int del_page_num_3 = 3;
-
-	// Page_file::pgf_read(pfile, del_page_num_2, page_buf); // read page 2
-	// Page::pg_del_record(page_buf, 1); // delete record at index 1
-	// Page_file::pgf_write(pfile, del_page_num_2, page_buf); // write page 2
-
-	// Page_file::pgf_read(pfile, del_page_num_3, page_buf); // read page 3
-	// Page::pg_del_record(page_buf, 0); // delete record at index 0
-	// Page_file::pgf_write(pfile, del_page_num_3, page_buf); // write page 3
 
 	/*************************************** PRINT THE RECORDS *************************************/
 
@@ -200,6 +188,23 @@ int main(int argc, char* argv[])
 
 	Page_file::print(pfile);
 
+	/************************************** DELETE SOME RECORDS ************************************/
+
+	std::cout << std::endl << "Deleting some records..." << std::endl;
+	int del_page_num_2 = 2;
+	int del_page_num_3 = 3;
+
+	Page_file::pgf_read(pfile, del_page_num_2, page_buf); // read page 2
+	Page::pg_del_record(page_buf, 1); // delete record at index 1
+	Page_file::pgf_write(pfile, del_page_num_2, page_buf); // write page 2
+
+	Page_file::pgf_read(pfile, del_page_num_3, page_buf); // read page 3
+	Page::pg_del_record(page_buf, 0); // delete record at index 0
+	Page_file::pgf_write(pfile, del_page_num_3, page_buf); // write page 3
+
+	/******************************************** FINALIZE *****************************************/
+
+	Page_file::print(pfile);
 	pfile.close();
 	return 0;
 }

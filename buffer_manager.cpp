@@ -1,9 +1,9 @@
 /**************************************************************************************************
-* Filename:   paging_manager.cpp
+* Filename:   buffer_manager.cpp
 * Author:     Jonathan Alexander Gibson (jagibson44@students.tntech.edu)
 * Copyright:	Tennessee Technological University (TTU)
 * Disclaimer: This code is presented "as is" without any guarantees.
-* Details:    Defines the API for the corresponding DB paging implementation.
+* Details:    Defines the API for the corresponding DB buffer implementation.
 **************************************************************************************************/
 
 /****************************************** HEADER FILES *****************************************/
@@ -59,9 +59,7 @@ namespace Buffer
 
 		/* Clear all the values in <lru_list> */
 		for(int i = 0; i < buf_pool_size; i++)
-		{
 			lru_list[i] = 0;
-		}
 
 		buf_pool.clear(); // delete all pages from the pool
 
@@ -136,9 +134,7 @@ namespace Buffer
 				}
 			}
 			else // <lru_list> slot is free
-			{
 				break; // break out of the loop because rest of LRU slots will also be 0
-			}
 		}
 	}
 
@@ -172,13 +168,28 @@ namespace Buffer
 			LRU_update(page_id); // update the LRU cache before returning the pointer to the page
 			return buf_pool.at(page_id).page; // return pointer to the page in LRU cache
 		}
-		else // key <page_id> does NOT exist in the buffer pool
+		else // key <page_id> does NOT exist in the buffer pool ; have not read the page from disk (file) yet
 		{
+			bool lru_full = full(); // find out if <lru_list> is full or not
 			void* read_buf; // define the page buffer
 			read_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
-			Page_file::pgf_read(pfile, page_id, read_buf); // read the empty page from disk (file)
-			page_descriptor_t page_desc = page_descriptor_t(page_id, read_buf, DEF_NOT_DTY); // create a new page descriptor
-			buf_pool.insert(std::pair<uint16_t, page_descriptor_t>(page_id, page_desc)); // add page descriptor to LRU cache
+			
+			/* Determine if page replacement is necessary or not */
+			if(lru_full)
+			{
+				std::cout << "LRU buffer pool is full and page replacement is required." << std::endl;
+				uint16_t old_page_id = replace(pfile, read_buf); // read_buf gets set to the addr of the page being replaced since its passed by reference
+				Page_file::pgf_read(pfile, page_id, read_buf); // read the empty page from disk (file)
+				page_descriptor_t page_desc = page_descriptor_t(page_id, read_buf, DEF_NOT_DTY); // create a new page descriptor to be buffered
+				buf_pool.insert(std::pair<uint16_t, page_descriptor_t>(page_id, page_desc)); // add page descriptor to LRU cache
+			}
+			else
+			{
+				std::cout << "LRU buffer pool is NOT full and page replacement is NOT required." << std::endl;
+				Page_file::pgf_read(pfile, page_id, read_buf); // read the empty page from disk (file)
+				page_descriptor_t page_desc = page_descriptor_t(page_id, read_buf, DEF_NOT_DTY); // create a new page descriptor to be buffered
+				buf_pool.insert(std::pair<uint16_t, page_descriptor_t>(page_id, page_desc)); // add page descriptor to LRU cache
+			}
 			LRU_update(page_id); // update the LRU cache before returning the pointer to the page
 			return read_buf; // return pointer to the empty page read from disk (file)
 		}
@@ -187,7 +198,19 @@ namespace Buffer
 
 	uint16_t replace(file_descriptor_t &pfile, void* &page)
 	{
-		return 0;
+		/* Assuming that the LRU list is full */
+		uint16_t replace_page_id = lru_list[buf_pool_size - 1];
+		std::cout << "Replacing page ID: " << replace_page_id << std::endl;
+
+		/* Determine if the page to be replaced is dirty or not */
+		if(buf_pool.at(replace_page_id).dirty) // the page to be replaced is still dirty
+			flush(pfile, replace_page_id); // flush the dirty page that is getting replaced
+
+		page = buf_pool.at(replace_page_id).page; // set the <&page> reference to the addr of the page to be replaced
+		buf_pool.erase(replace_page_id); // erase the appropriate entry in the buffer pool
+		lru_list[buf_pool_size - 1] = 0; // set the oldest (last) index to '0' in the LRU list
+
+		return replace_page_id; // return the page ID of the page that got replaced
 	}
 
 
@@ -210,8 +233,10 @@ namespace Buffer
 		std::cout << std::endl << "LRU list: " << '[';
 		for(int i = 0; i < buf_pool_size; i++)
 		{
-			if(i < buf_pool_size - 1){std::cout << lru_list[i] << ", ";}
-			else{std::cout << lru_list[i];}
+			if(i < buf_pool_size - 1)
+				std::cout << lru_list[i] << ", ";
+			else
+				std::cout << lru_list[i];
 		}
 		std::cout << ']' << std::endl;
 	}
@@ -245,15 +270,17 @@ namespace Buffer
 
 	void print_buf_pool()
 	{
+		uint16_t count = 1;
 		std::cout << std::endl << "Current state of the buffer pool..." << std::endl;
 		for(std::map<uint16_t, page_descriptor_t>::iterator itr = buf_pool.begin(); itr != buf_pool.end(); itr++)
 		{
-		  std::cout << "Entry " << itr->first \
+		  std::cout << "Entry #" << count \
 		  					<< " = {Key: " << itr->first \
 		  					<< " => [Page ID: " << (itr->second).page_id \
 		  					<< ", Page Address: " << (itr->second).page \
 		  					<< ", Dirty: " << (itr->second).dirty \
 		  					<< "]}" << std::endl;
+		 	count++;
 		}
 		std::cout << std::endl;
 	}
