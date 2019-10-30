@@ -1,20 +1,10 @@
 #ifndef PAGING_H
 #define PAGING_H
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <cmath>
-#include <fstream>
-#include <iostream>
-
 #include <climits>
 #include <stdexcept>
 #include <exception>
 #include <string>
-
 typedef uint8_t BYTE;
 
 #define PAGE_SIZE (16 * 1024)

@@ -1,7 +1,7 @@
 /****************************************** HEADER FILES *****************************************/
 
 #include "paging/paging.h"
-#include "buffer_manager.h"
+#include "buffer_mgr/buffer_mgr.h"
 
 /************************************** DRIVER IMPLEMENTATION ************************************/
 
@@ -20,8 +20,8 @@ int main(int argc, char* argv[])
 
 	char* test_db_name = argv[1]; // get the DB file name
 	uint16_t lru_size = 2; // set the size of the LRU cache
-	Buffer::initialize(lru_size);
-	Buffer::print_lru_list();
+	Buffer_mgr::initialize(lru_size);
+	// Buffer_mgr::print_lru_list();
 
 	/********************************* FORMAT THE DB FILE IN BINARY ********************************/
 
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
 	std::string &addr_str_0 = const_ref_s_0;
 
 	/* Buffer and add record 0 on page 1*/
-	page_buf = Buffer::buf_read(pfile, rec_0_page_num); // read empty page from disk (file) or cached page from <buf_pool>
+	page_buf = Buffer_mgr::buf_read(pfile, rec_0_page_num); // read empty page from disk (file) or cached page from <buf_pool>
 	Page::rec_begin(s_0);
 	Page::rec_packint(s_0, addr_num_0);
 	Page::rec_packstr(s_0, addr_str_0);
@@ -60,8 +60,8 @@ int main(int argc, char* argv[])
 	uint16_t rec_id_0 = Page::pg_add_record(page_buf, (void*)s_0.data(), s_0.size()); // reclen = |2|2|4|2|29|2|4| ; L = 45
 	std::cout << "Added record " << rec_id_0 << " to page " << rec_0_page_num << std::endl;
 
-	Buffer::buf_write(pfile, rec_0_page_num); // set the dirty bit for page 1
-	Buffer::print_lru_list();
+	Buffer_mgr::buf_write(pfile, rec_0_page_num); // set the dirty bit for page 1
+	// Buffer_mgr::print_lru_list();
 	Page_file::print(pfile);
 
 	/************************************ SET UP RECORD #1 TO ADD **********************************/
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 	std::string &addr_str_1 = const_ref_s_1;
 
 	/* Buffer and add record 1 on page 1*/
-	page_buf = Buffer::buf_read(pfile, rec_1_page_num); // read empty page from disk (file) or cached page from <buf_pool>
+	page_buf = Buffer_mgr::buf_read(pfile, rec_1_page_num); // read empty page from disk (file) or cached page from <buf_pool>
 	Page::rec_begin(s_1);
 	Page::rec_packint(s_1, addr_num_1);
 	Page::rec_packstr(s_1, addr_str_1);
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
 	uint16_t rec_id_1 = Page::pg_add_record(page_buf, (void*)s_1.data(), s_1.size()); // reclen = |2|2|4|2|29|2|4| ; L = 45
 	std::cout << "Added record " << rec_id_1 << " to page " << rec_1_page_num << std::endl;
 
-	Buffer::print_lru_list();
+	// Buffer_mgr::print_lru_list();
 	Page_file::print(pfile);
 
 	/************************************ SET UP RECORD #2 TO ADD **********************************/
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 	std::string &addr_str_2 = const_ref_s_2;
 
 	/* Buffer and add record 2 on page 2*/
-	page_buf = Buffer::buf_read(pfile, rec_2_page_num); // read empty page from disk (file) or cached page from <buf_pool>
+	page_buf = Buffer_mgr::buf_read(pfile, rec_2_page_num); // read empty page from disk (file) or cached page from <buf_pool>
 	Page::rec_begin(s_2);
 	Page::rec_packint(s_2, addr_num_2);
 	Page::rec_packstr(s_2, addr_str_2);
@@ -115,8 +115,8 @@ int main(int argc, char* argv[])
 	uint16_t rec_id_2 = Page::pg_add_record(page_buf, (void*)s_2.data(), s_2.size()); // reclen = |2|2|4|2|15|2|4| ; L = 31
 	std::cout << "Added record " << rec_id_2 << " to page " << rec_2_page_num << std::endl;
 
-	Buffer::buf_write(pfile, rec_2_page_num); // set the dirty bit for page 2
-	Buffer::print_lru_list();
+	Buffer_mgr::buf_write(pfile, rec_2_page_num); // set the dirty bit for page 2
+	// Buffer_mgr::print_lru_list();
 	Page_file::print(pfile);
 
 	/************************************ SET UP RECORD #3 TO ADD **********************************/
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 	std::string &addr_str_3 = const_ref_s_3;
 
 	/* Buffer and add record 3 on page 2*/
-	page_buf = Buffer::buf_read(pfile, rec_3_page_num); // read empty page from disk (file) or cached page from <buf_pool>
+	page_buf = Buffer_mgr::buf_read(pfile, rec_3_page_num); // read empty page from disk (file) or cached page from <buf_pool>
 	Page::rec_begin(s_3);
 	Page::rec_packint(s_3, addr_num_3);
 	Page::rec_packstr(s_3, addr_str_3);
@@ -143,13 +143,13 @@ int main(int argc, char* argv[])
 	uint16_t rec_id_3 = Page::pg_add_record(page_buf, (void*)s_3.data(), s_3.size()); // reclen = |2|2|4|2|15|2|4| ; L = 31
 	std::cout << "Added record " << rec_id_3 << " to page " << rec_3_page_num << std::endl;
 
-	Buffer::print_lru_list();
+	// Buffer_mgr::print_lru_list();
 	Page_file::print(pfile);
 
 	/* Flush an individual page (page 2) */
-	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
-	Buffer::flush(pfile, rec_3_page_num);
-	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
+	// std::cout << "Current number of dirty pages: " << Buffer_mgr::get_num_dirty_pages() << std::endl;
+	Buffer_mgr::flush(pfile, rec_3_page_num);
+	// std::cout << "Current number of dirty pages: " << Buffer_mgr::get_num_dirty_pages() << std::endl;
 
 	/************************************ SET UP RECORD #4 TO ADD **********************************/
 
@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 	std::string &addr_str_4 = const_ref_s_4;
 
 	/* Buffer and add record 4 on page 3*/
-	page_buf = Buffer::buf_read(pfile, rec_4_page_num); // read empty page from disk (file) or cached page from <buf_pool>
+	page_buf = Buffer_mgr::buf_read(pfile, rec_4_page_num); // read empty page from disk (file) or cached page from <buf_pool>
 	Page::rec_begin(s_4);
 	Page::rec_packint(s_4, addr_num_4);
 	Page::rec_packstr(s_4, addr_str_4);
@@ -175,16 +175,16 @@ int main(int argc, char* argv[])
 	uint16_t rec_id_4 = Page::pg_add_record(page_buf, (void*)s_4.data(), s_4.size()); // reclen = |2|2|4|2|23|2|4| ; L = 39
 	std::cout << "Added record " << rec_id_4 << " to page " << rec_4_page_num << std::endl;
 
-	Buffer::buf_write(pfile, rec_4_page_num); // set the dirty bit for page 3
-	Buffer::print_lru_list();
+	Buffer_mgr::buf_write(pfile, rec_4_page_num); // set the dirty bit for page 3
+	// Buffer_mgr::print_lru_list();
 	Page_file::print(pfile);
 
 	/*************************************** PRINT THE RECORDS *************************************/
 
-	Buffer::print_buf_pool();
-	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
-	Buffer::shutdown(pfile);
-	std::cout << "Current number of dirty pages: " << Buffer::get_num_dirty_pages() << std::endl;
+	// Buffer_mgr::print_buf_pool();
+	// std::cout << "Current number of dirty pages: " << Buffer_mgr::get_num_dirty_pages() << std::endl;
+	Buffer_mgr::shutdown(pfile);
+	// std::cout << "Current number of dirty pages: " << Buffer_mgr::get_num_dirty_pages() << std::endl;
 
 	Page_file::print(pfile);
 

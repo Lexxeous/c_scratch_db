@@ -33,16 +33,20 @@ namespace Buffer
 	};
 }
 
-/************************************** FUNCTION PROTOTYPES **************************************/
+/****************************************** PROTOTYPES *******************************************/
 
 namespace Buffer
 {
+	/************************************** DEFINE BUFFER ERROR ************************************/
+
 	class buffer_error : public std::runtime_error // runtime error function(s) to indicate a failure at the buffering layer
 	{
   	public:
 	    buffer_error(std::string what) : std::runtime_error(what) {}
 	    buffer_error(const char* what) : std::runtime_error(what) {}
   };
+
+  /************************************* FUNCTION PROTOTYPES *************************************/
 
 	/* Set the buffer pool size to pool_sz. Note that you will want to throw an error if the number of dirty pages is not zero. */
 	void initialize(uint16_t pool_sz);
@@ -91,6 +95,6 @@ namespace Buffer
 
 	/* Helper function that prints the current state of <buf_pool> */
 	void print_buf_pool();
-}
+};
 
 #endif // BUFFER_MANAGER
