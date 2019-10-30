@@ -1,7 +1,8 @@
 #ifndef BUFFER_MGR_H
 #define BUFFER_MGR_H
 
-#include "paging.h"
+#include "../paging/paging.h"
+
 #include <climits>
 #include <map>
 #include <string>

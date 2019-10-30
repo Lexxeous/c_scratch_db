@@ -11,7 +11,7 @@ run: comp
 
 comp:
 # 	g++ -o $(db_exec) driver.cpp paging_manager.cpp buffer_manager.cpp # compile and link into a "driver" executable
-	g++ -o $(db_exec) driver.cpp "paging/paging.cpp" "buffer_mgr/buffer_mgr.cpp" -std=c++11
+	g++ -o $(db_exec) driver.cpp "paging/paging.cpp" "buffer_mgr/buffer_mgr.cpp" "table_manager.cpp" -std=c++11
 
 clean:
 	rm $(db_file) $(buf_file) $(db_exec) $(test_exec)
@@ -23,7 +23,7 @@ debug: debug_comp
 
 debug_comp:
 # 	g++ -g -o $(db_exec) driver.cpp paging_manager.cpp buffer_manager.cpp # compile and link into a "driver" executable
-	g++ -g -o $(db_exec) driver.cpp "original_paging/paging.o" buffer_manager.cpp
+	g++ -g -o $(db_exec) driver.cpp "paging/paging.cpp" "buffer_mgr/buffer_mgr.cpp" "table_manager.cpp" -std=c++11
 
 debug_clean:
 	rm -r $(db_exec).dSYM
@@ -35,6 +35,6 @@ test: test_db
 
 test_db:
 # 	g++ -o $(test_exec) test.cpp paging_manager.cpp buffer_manager.cpp
-	g++ -o $(test_exec) test.cpp "original_paging/paging.o" buffer_manager.cpp
+	g++ -o $(test_exec) test.cpp "paging/paging.cpp" "buffer_mgr/buffer_mgr.cpp" "table_manager.cpp" -std=c++11
 
 #-------------------------------------------------------------------------------------------------#

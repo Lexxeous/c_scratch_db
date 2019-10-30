@@ -16,7 +16,7 @@ void Buffer_mgr::initialize(uint16_t pool_sz) {
   // Dirty pages should be flushed before initializing
   if (num_dirty) {
     throw buffering_error(
-        "attempt to intialize buffering, but dirty pages exist.");
+        "Attempted to intialize buffering, but dirty pages already exist.");
   }
   // set the max pool size (number of pages that can be buffered)
   pool_size = pool_sz;
