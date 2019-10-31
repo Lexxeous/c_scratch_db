@@ -96,10 +96,19 @@ namespace Table
     uint16_t size;
   };
 
-  //struct master_table_t : pg_locations_t {
-    
-  //  std::vector<master_table_row_t> rows;
-  //};
+  // /* Struct defining a vector of "#master" table rows */
+  // struct master_table_t
+  // {  
+  //   using Page;
+  //   Page_t m_page;
+  // };
+
+  // /* Struct defining a vector of "#columns" table rows */
+  // struct columns_table_t
+  // {
+  //   using Page;
+  //   Page_t c_page;
+  // };
 }
 
 /******************************************* CONSTANTS *******************************************/
@@ -174,6 +183,19 @@ namespace Table
   void extend_table(file_descriptor_t &pfile, pg_locations_t &location);
 
   /* Create master record and append to "#master" and for each in <col_types>, create column record and append to "#columns" */
+  // get the #master page
+  // create empty void page buffer
+  // create empty string buffer
+  // pack the master record data into a string
+  // convert the td into a <master_table_row_t>
+  // insert the record for the <master_table_row_t>
+  // write the master page to the buffer pool
+
+  // get the #columns page
+  // loop through all the columns in <td>
+    // check that the #columns page has enough room, call extend table if needed
+    // write a record with a single column
+  // write the #columns page to the buffer pool
   void write_new_table_descriptor(file_descriptor_t &dbfile, const table_descriptor_t &td);
 
   void write_updated_master_row(file_descriptor_t &dbfile, const master_table_row_t &td, RID rid);

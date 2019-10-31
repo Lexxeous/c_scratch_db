@@ -67,18 +67,19 @@ namespace Table
                    {"size", TBL_TYPE_SHORT, 1}};
 
     table_descriptor_t td;
-    td.name = "#columns";
+    td.name = "#columns"; // this is the table name for the "#columns" page
     td.first_page = TBL_COLUMNS_PAGE;
     td.last_page = TBL_COLUMNS_PAGE;
     int count = 0;
     for (auto each : all)
     {
       column_type_t ct;
-      ct.name = each.name;
+      ct.name = each.name; // column name -> |"tname"|"colname"|"ord"|"type"|"size"|
       ct.ord = count;
       ct.type = each.type;
       ct.max_size = each.size;
       td.col_types.push_back(ct);
+      count++;
     }
 
     write_new_table_descriptor(dbfile, td);
@@ -129,7 +130,15 @@ namespace Table
 
   void read_table_descriptor(file_descriptor_t &dbfile, const std::string &table_name, table_descriptor_t &table_descr)
   {
+    // master_table_t* mstr_page = static_cast<master_table_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE));
 
+    // std::cout << mstr_page->rows[0].name << std::endl;
+
+    // std::cout << "name: " << mstr_page[0].name << std::endl;
+    // std::cout << "first_page: " << mstr_page[0].first_page << std::endl;
+    // std::cout << "last_page: " << mstr_page[0].last_page << std::endl;
+    // std::cout << "type: " << mstr_page[0].type << std::endl;
+    // std::cout << "def: " << mstr_page[0].def << std::endl;
   }
 
 
@@ -188,6 +197,31 @@ namespace Table
   void write_new_table_descriptor(file_descriptor_t &dbfile, const table_descriptor_t &td)
   {
     std::cout << "I am inside write_new_table_descriptor() function" << std::endl;
+
+    std::string mstr_str; // empty master string for packing data
+    std::string cols_str; // empty columns string for packing data
+
+    /* Create a new master table row and assign all the appropriate values from <td> */
+    master_table_row_t mtr; 
+    mtr.name = td.name;
+    mtr.first_page = td.first_page;
+    mtr.last_page = td.last_page;
+    mtr.type = 0;
+    mtr.def = "0";
+
+    Page::Page_t* mstr_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE)); // get the "#master" page
+    tbl_pack_master_row(mstr_str, mtr);
+    Page::pg_add_record((void*)mstr_page, (void*)mstr_str.data(), mstr_str.size());
+    Buffer_mgr::buf_write(dbfile, TBL_MASTER_PAGE);
+
+
+    Page::Page_t* cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE)); // get the "#columns" page
+    for(int i = 0; i < td.col_types.size(); i++) // loop through all of the column types in the vector
+    {
+      tbl_pack_col_type(cols_str, mtr.name, td.col_types[i]);
+      Page::pg_add_record((void*)cols_page, (void*)cols_str.data(), cols_str.size());
+    }
+    Buffer_mgr::buf_write(dbfile, TBL_COLUMNS_PAGE);
   }
 
 

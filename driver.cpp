@@ -32,10 +32,10 @@ int main(int argc, char* argv[])
 
 	/********************************* PAGE BUFFER AND OPEN DB FILE ********************************/
 
-	// void* page_buf; // define a page buffer
-	// page_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
-	// std::fstream pfile; // define the DB file for reading and writing
-	// pfile.open(test_db_name); // open the pages file
+	void* page_buf; // define a page buffer
+	page_buf = calloc(PAGE_SIZE, sizeof(char)); // allocate 16384 bytes
+	std::fstream pfile; // define the DB file for reading and writing
+	pfile.open(test_db_name); // open the pages file
 
 	/************************************ SET UP RECORD #0 TO ADD **********************************/
 
@@ -67,8 +67,8 @@ int main(int argc, char* argv[])
 
 	/******************************************** FINALIZE *****************************************/
 
-	// Buffer_mgr::shutdown(pfile);
-	// Page_file::print(pfile);
-	// pfile.close();
+	Buffer_mgr::shutdown(pfile);
+	Page_file::print(pfile);
+	pfile.close();
 	return 0;
 }
