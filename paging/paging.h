@@ -78,7 +78,7 @@ namespace Page {
               2 * sizeof(unsigned short)]; // includes data + directory
     unsigned short dir_size;
     unsigned short free_bytes;
-  }; // must be packed
+  }__attribute__((packed));
 
   struct Page_header_t {
     char sig[4];

@@ -168,6 +168,19 @@ namespace Table
   /* Allocate a free page by removing it from the free pages list and adding it to the end of this table's linked list */
   uint16_t extend(table_descriptor_t td);
 
+
+  // <page> = master page already
+  // <tname> = the name of the table we want to find
+  // <rid> = <page_id> & <rec_id> pair passed by reference
+
+  // cast the void* master page into a Page_t
+  // for all the rows in #master
+    // create a <master_table_row_t> at BYTE OFFSET that will store the current record in #master
+    // if it is the table we want to find
+      // return the <master_table_row_t>
+      // set the RID <page_id> and <rec_id> @ idx
+    // else
+      // get the size of the current <master_table_row_t> and jump BYTE OFFSET forward that amount... to the next record
   master_table_row_t master_find_table(std::string tname, void* page, RID &rid);
 
   // Get page of #master from buffer manager

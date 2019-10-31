@@ -42,15 +42,15 @@ namespace Table
       throw Page::paging_error("Cannot open page file for writing.");
 
     /* Create "#master" table page with one entry for "#columns" table */
-    table_page_t* mt_page = static_cast<table_page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE));
-    mt_page->next_page = 0;
-    mt_page->free_bytes -= sizeof(uint16_t); // so that page directory will never point to the next_page
+    table_page_t* mstr_page = static_cast<table_page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE));
+    mstr_page->next_page = 0;
+    mstr_page->free_bytes -= sizeof(uint16_t); // so that page directory will never point to the next_page
     Buffer_mgr::buf_write(dbfile, TBL_MASTER_PAGE);
 
     /* Create empty "#columns" table page */
-    table_page_t* colpage = static_cast<table_page_t*>(Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE));
-    colpage->free_bytes -= sizeof(uint16_t); // skip the next_page bytes
-    colpage->next_page = 0;
+    table_page_t* cols_page = static_cast<table_page_t*>(Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE));
+    cols_page->free_bytes -= sizeof(uint16_t); // skip the next_page bytes
+    cols_page->next_page = 0;
     Buffer_mgr::buf_write(dbfile, TBL_COLUMNS_PAGE);
 
     /* Create all the entries that will go in "#columns" (so "#columns" will have an entry for itself) */
@@ -120,7 +120,20 @@ namespace Table
 
   master_table_row_t master_find_table(std::string tname, void* page, RID &rid)
   {
-    std::cout << "I am inside master_find_table() function" << std::endl;
+    int mstr_offset = 0;
+    Page::Page_t* mstr_page = (Page::Page_t*)page;
+
+    std::cout << "TNAME: " << tname << std::endl;
+    std::cout << "MASTER FREE BYTES: " << mstr_page->free_bytes << std::endl;
+
+    // for all the rows in #master
+      // create a <master_table_row_t> at BYTE OFFSET that will store the current record in #master
+      // if it is the table we want to find
+        // return the <master_table_row_t>
+        // set the RID <page_id> and <rec_id> @ idx
+      // else
+        // get the size of the current <master_table_row_t> and jump BYTE OFFSET forward that amount... to the next record
+
     master_table_row_t mtr;
     mtr.type = 99;
     mtr.def = "DEF";
@@ -148,7 +161,7 @@ namespace Table
     Page_file::page_free_t* pgfree = static_cast<Page_file::page_free_t*>(Buffer_mgr::buf_read(pfile, Page_file::PGF_PAGES_FREE_ID));
     
     if (pgfree->size == 0) // if the free pages list is empty
-      throw table_error("No free pages available");
+      throw table_error("No free pages available.");
 
     /* Get the last page_id in the list of free pages, and then delete it from the list */
     uint16_t free_page_id = pgfree->free[pgfree->size - 1];
@@ -184,8 +197,8 @@ namespace Table
     /* Buffer the new page that was added as the table's last page to maintain the buffer pool */
     Buffer_mgr::buf_write(pfile, free_page_id);
 
-    /* Must change record in master table that records last page */
-    void* page = Buffer_mgr::buf_read(pfile, TBL_MASTER_PAGE); // read the master page
+    /* Must change record in master table that holds last page */
+    void* page = Buffer_mgr::buf_read(pfile, TBL_MASTER_PAGE); // get "#master |rec1|...|recN|E|F|"
     RID rid;
     master_table_row_t mtr = master_find_table(location.name, page, rid);
     mtr.first_page = location.first_page;
@@ -196,31 +209,47 @@ namespace Table
 
   void write_new_table_descriptor(file_descriptor_t &dbfile, const table_descriptor_t &td)
   {
-    std::cout << "I am inside write_new_table_descriptor() function" << std::endl;
-
     std::string mstr_str; // empty master string for packing data
     std::string cols_str; // empty columns string for packing data
 
-    /* Create a new master table row and assign all the appropriate values from <td> */
+    /* Create a new <master_table_row> and assign all the appropriate values from <td> */
     master_table_row_t mtr; 
-    mtr.name = td.name;
+    mtr.name = td.name; // the name for the new table (<tname>)
     mtr.first_page = td.first_page;
     mtr.last_page = td.last_page;
     mtr.type = 0;
     mtr.def = "0";
 
-    Page::Page_t* mstr_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE)); // get the "#master" page
+    /* Create record in "#master" for the new table and write to buffer */
+    Page::Page_t* mstr_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE)); // get "#master |rec1|...|recN|E|F|"
     tbl_pack_master_row(mstr_str, mtr);
     Page::pg_add_record((void*)mstr_page, (void*)mstr_str.data(), mstr_str.size());
     Buffer_mgr::buf_write(dbfile, TBL_MASTER_PAGE);
 
-
-    Page::Page_t* cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE)); // get the "#columns" page
+    /* Create records in "#columns" for all of the unique columns in the new table and write to buffer */
+    Page::Page_t* cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE)); // get "#columns |rec1|...|recN|E|F|"
     for(int i = 0; i < td.col_types.size(); i++) // loop through all of the column types in the vector
     {
       tbl_pack_col_type(cols_str, mtr.name, td.col_types[i]);
+
+      if(cols_str.size() > cols_page->free_bytes) // if record cannot fit in "#columns"
+      {
+        /* Create a new <page_locations_t> and assign the appropriate values from <td> */
+        pg_locations_t pgl;
+        pgl.name = td.name; // the name for the new table (<tname>)
+        pgl.first_page = td.first_page;
+        pgl.last_page = td.last_page;
+        std::cout << "First Page, Last Page: " << pgl.first_page << ", " << pgl.last_page << std::endl;
+        extend_table(dbfile, pgl); 
+        Page::Page_t* ext_cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, pgl.last_page));
+        Page::pg_add_record((void*)ext_cols_page, (void*)cols_str.data(), cols_str.size());
+        Buffer_mgr::buf_write(dbfile, pgl.last_page);
+        return;
+      } // TEST THIS STATEMENT TO SEE IF THE #COLUMNS TABLE ACTUALLY GETS EXTENDED PROPERLY
+
       Page::pg_add_record((void*)cols_page, (void*)cols_str.data(), cols_str.size());
     }
+
     Buffer_mgr::buf_write(dbfile, TBL_COLUMNS_PAGE);
   }
 
