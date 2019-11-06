@@ -53,8 +53,8 @@ namespace Table
   /* Structure that uniquely identifies a record in the database based on its <page_id> and <rec_id> */
   struct RID
   {
-    uint16_t page_id;
-    uint16_t rec_id;
+    uint16_t page_id; // the absolute (0-indexed) page number in the DB file
+    uint16_t rec_id; // the index of the record (0-indexed)
   };
 
   /* Structure that collects the all but the table name for a "#columns" page record/row */
