@@ -191,11 +191,11 @@ namespace Table
 
   void read_table_descriptor(file_descriptor_t &dbfile, const std::string &table_name, table_descriptor_t &table_descr)
   {
-    Page::Page_t* mstr_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE)); // get "#master |rec1|...|recN|E|F|"
+    Page::Page_t* mstr_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE)); // get "#master ||[np]rec1|...|recN|E|F|"
 
 
 
-    Page::Page_t* cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE)); // get "#columns |rec1|...|recN|E|F|"
+    Page::Page_t* cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE)); // get "#columns |[np]|rec1|...|recN|E|F|"
   }
 
 
@@ -297,19 +297,25 @@ namespace Table
     Buffer_mgr::buf_write(dbfile, TBL_COLUMNS_PAGE);
   }
 
-
+  // i have all the data to write to a master row
+  // get the master table page at <rid.page_id>
+  // get the dir = PAGE_DIRECTORY
+  // jump to the offset of dir[rec_id]
+  // traverse to <last_page>, <type>, and <def> and write the data
+    // must shift the records if <def> is not the same length...
   void write_updated_master_row(file_descriptor_t &dbfile, const master_table_row_t &td, RID rid)
   {
-    Page::Page_t* mstr_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE)); // get "#master |rec1|...|recN|E|F|"
+    int16_t u = sizeof(uint16_t); // u = 2 ; for easy traversal of the current master record
+    void* mstr_page = (void*)Buffer_mgr::buf_read(dbfile, rid.page_id);
+    uint16_t* offset_arr = PG_DIRECTORY(mstr_page); // pointer to the beginning of the page directory
 
-    std::cout << "name: " << td.name << std::endl;
-    std::cout << "first_page: " << td.first_page << std::endl;
-    std::cout << "last_page: " << td.last_page << std::endl;
-    std::cout << "type: " << td.type << std::endl;
-    std::cout << "def: " << td.def << std::endl;
+    uint16_t* update_last_page = (uint16_t*)((BYTE*)mstr_page + offset_arr[rid.rec_id] + (2*u) + (td.name).length() + (3*u)); // pointer to <last_page>
+    uint16_t* update_type = (uint16_t*)((BYTE*)mstr_page + offset_arr[rid.rec_id] + (2*u) + (td.name).length() + (5*u)); // pointer to <type>
 
-    std::cout << "page_id: " << rid.page_id << std::endl;
-    std::cout << "rec_id: " << rid.rec_id << std::endl;
+    *update_last_page = td.last_page; // assign updated value to the pointer location at <last_page>
+    *update_type = td.type; // assign updated value to the pointer location at <type>
+
+    Buffer_mgr::buf_write(dbfile, rid.page_id);
   }
 
 

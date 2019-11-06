@@ -211,6 +211,9 @@ namespace Table
   // write the #columns page to the buffer pool
   void write_new_table_descriptor(file_descriptor_t &dbfile, const table_descriptor_t &td);
 
+
+  // if a table gets extended the last page will change and needs to be reflected in the master table
+  // if the type or def needs to change, they can be updated with this function too
   void write_updated_master_row(file_descriptor_t &dbfile, const master_table_row_t &td, RID rid);
 
   void tbl_pack_master_row(std::string &rec, const master_table_row_t &row);
