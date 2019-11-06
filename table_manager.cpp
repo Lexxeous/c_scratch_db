@@ -53,36 +53,63 @@ namespace Table
     cols_page->next_page = 0;
     Buffer_mgr::buf_write(dbfile, TBL_COLUMNS_PAGE);
 
-    /* Create all the entries that will go in "#columns" (so "#columns" will have an entry for itself) */
     struct triple {
       std::string name;
       uint16_t type;
       uint16_t size;
     };
 
-    triple all[] = {{"tname", TBL_TYPE_VCHAR, 40},
+    
+    /* Create all the entries that will go in "#master" (so "#master" will have an entry for itself) */
+    triple mstr[] = {{"name", TBL_TYPE_VCHAR, 40},
+                   {"fp", TBL_TYPE_SHORT, 1},
+                   {"lp", TBL_TYPE_SHORT, 1},
+                   {"type", TBL_TYPE_SHORT, 1},
+                   {"def", TBL_TYPE_VCHAR, 40}};
+
+    table_descriptor_t mstr_td;
+    mstr_td.name = "#master"; // this is the table name for the "#master" page
+    mstr_td.first_page = TBL_MASTER_PAGE;
+    mstr_td.last_page = TBL_MASTER_PAGE;
+    int mstr_count = 0;
+    for (auto each : mstr)
+    {
+      // |"name"|"fp"|"lp"|"type"|"def"|
+      column_type_t mstr_ct;
+      mstr_ct.name = each.name; // column name
+      mstr_ct.ord = mstr_count;
+      mstr_ct.type = each.type;
+      mstr_ct.max_size = each.size;
+      mstr_td.col_types.push_back(mstr_ct);
+      mstr_count++;
+    }
+    write_new_table_descriptor(dbfile, mstr_td);
+
+
+    /* Create all the entries that will go in "#columns" (so "#columns" will have an entry for itself) */
+    triple cols[] = {{"tname", TBL_TYPE_VCHAR, 40},
                    {"colname", TBL_TYPE_VCHAR, 40},
                    {"ord", TBL_TYPE_SHORT, 1},
                    {"type", TBL_TYPE_SHORT, 1},
                    {"size", TBL_TYPE_SHORT, 1}};
 
-    table_descriptor_t td;
-    td.name = "#columns"; // this is the table name for the "#columns" page
-    td.first_page = TBL_COLUMNS_PAGE;
-    td.last_page = TBL_COLUMNS_PAGE;
-    int count = 0;
-    for (auto each : all)
+    table_descriptor_t cols_td;
+    cols_td.name = "#columns"; // this is the table name for the "#columns" page
+    cols_td.first_page = TBL_COLUMNS_PAGE;
+    cols_td.last_page = TBL_COLUMNS_PAGE;
+    int cols_count = 0;
+    for (auto each : cols)
     {
-      column_type_t ct;
-      ct.name = each.name; // column name -> |"tname"|"colname"|"ord"|"type"|"size"|
-      ct.ord = count;
-      ct.type = each.type;
-      ct.max_size = each.size;
-      td.col_types.push_back(ct);
-      count++;
+      // |"tname"|"colname"|"ord"|"type"|"size"|
+      column_type_t cols_ct;
+      cols_ct.name = each.name; // column name
+      cols_ct.ord = cols_count;
+      cols_ct.type = each.type;
+      cols_ct.max_size = each.size;
+      cols_td.col_types.push_back(cols_ct);
+      cols_count++;
     }
-
-    write_new_table_descriptor(dbfile, td);
+    write_new_table_descriptor(dbfile, cols_td);
   }
 
 
@@ -264,34 +291,52 @@ namespace Table
     mtr.type = 0;
     mtr.def = "0";
 
+    // I AM NOT LOOPING THROUGH THE LINKED LIST YET TO FIND THE LAST PAGE BEFORE READING AND CHECKING THE FREE BYTES
     /* Create record in "#master" for the new table and write to buffer */
     Page::Page_t* mstr_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE)); // get "#master |rec1|...|recN|E|F|"
     tbl_pack_master_row(mstr_str, mtr);
-    Page::pg_add_record((void*)mstr_page, (void*)mstr_str.data(), mstr_str.size());
-    Buffer_mgr::buf_write(dbfile, TBL_MASTER_PAGE);
 
+    // CANNOT EXTEND THE MASTER TABLE IF THERE ARE NO RECORDS FOR IT IN "#master" or "#columns"
+    if(false)//mstr_str.size() > mstr_page->free_bytes) // if record cannot fit in original "#master" page (page 1)
+    {
+      pg_locations_t mstr_pgl; // create new empty <page_locations_t> for master
+      mstr_pgl.name = td.name; // the name for the new table (<tname>)
+      mstr_pgl.first_page = td.first_page;
+      mstr_pgl.last_page = td.last_page;
+      extend_table(dbfile, mstr_pgl); // extend the master table
+      Page::Page_t* ext_mstr_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, mstr_pgl.last_page)); // read the last page in "#master"
+      Page::pg_add_record((void*)ext_mstr_page, (void*)mstr_str.data(), mstr_str.size()); // add record to "#master" last page
+      Buffer_mgr::buf_write(dbfile, mstr_pgl.last_page); // write "#master" last page to buffer
+    }
+    else // new record can fit in the original "#master" page
+    {
+      Page::pg_add_record((void*)mstr_page, (void*)mstr_str.data(), mstr_str.size());
+      Buffer_mgr::buf_write(dbfile, TBL_MASTER_PAGE);
+    }
+
+    // I AM NOT LOOPING THROUGH THE LINKED LIST YET TO FIND THE LAST PAGE BEFORE READING AND CHECKING THE FREE BYTES
     /* Create records in "#columns" for all of the unique columns in the new table and write to buffer */
     Page::Page_t* cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE)); // get "#columns |rec1|...|recN|E|F|"
     for(int i = 0; i < td.col_types.size(); i++) // loop through all of the column types in the vector
     {
       tbl_pack_col_type(cols_str, mtr.name, td.col_types[i]);
 
-      if(i==4)//cols_str.size() > cols_page->free_bytes) // if record cannot fit in "#columns"
+      if(cols_str.size() > cols_page->free_bytes) // if record cannot fit in "#columns"
       {
         /* Create a new <page_locations_t> and assign the appropriate values from <td> */
-        pg_locations_t pgl;
-        pgl.name = td.name; // the name for the new table (<tname>)
-        pgl.first_page = td.first_page;
-        pgl.last_page = td.last_page;
-        std::cout << "First Page, Last Page: " << pgl.first_page << ", " << pgl.last_page << std::endl;
-        extend_table(dbfile, pgl); 
-        Page::Page_t* ext_cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, pgl.last_page));
+        pg_locations_t cols_pgl;
+        cols_pgl.name = td.name; // the name for the new table (<tname>)
+        cols_pgl.first_page = td.first_page;
+        cols_pgl.last_page = td.last_page;
+        extend_table(dbfile, cols_pgl); 
+        Page::Page_t* ext_cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, cols_pgl.last_page));
         Page::pg_add_record((void*)ext_cols_page, (void*)cols_str.data(), cols_str.size());
-        Buffer_mgr::buf_write(dbfile, pgl.last_page);
-        return;
-      } // TEST THIS STATEMENT TO SEE IF THE #COLUMNS TABLE ACTUALLY GETS EXTENDED PROPERLY
-
-      Page::pg_add_record((void*)cols_page, (void*)cols_str.data(), cols_str.size());
+        Buffer_mgr::buf_write(dbfile, cols_pgl.last_page);
+      }
+      else
+      {
+        Page::pg_add_record((void*)cols_page, (void*)cols_str.data(), cols_str.size());
+      } 
     }
 
     Buffer_mgr::buf_write(dbfile, TBL_COLUMNS_PAGE);

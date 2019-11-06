@@ -66,6 +66,15 @@ namespace Table
     uint16_t max_size;
   };
 
+  // struct master_type_t
+  // {
+  //   std::string name;
+  //   uint16_t fp;
+  //   uint16_t lp;
+  //   uint16_t type;
+  //   std::string def;
+  // };
+
   /* Structure that collects the first 3 variables from a record in the "#master" page */
   struct pg_locations_t
   {
@@ -87,6 +96,11 @@ namespace Table
   {
     std::vector<column_type_t> col_types;
   };
+
+  // struct mstr_table_descriptor_t : public pg_locations_t
+  // {
+  //   std::vector<master_type_t> mstr_types;
+  // }
 
   /* ??? */
   struct col_def_t
