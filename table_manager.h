@@ -154,51 +154,15 @@ namespace Table
   /* Allocate a free page by removing it from the free pages list and adding it to the end of this table's linked list */
   uint16_t extend(table_descriptor_t td);
 
-
-  // <page> = master page already
-  // <tname> = the name of the table we want to find
-  // <rid> = <page_id> & <rec_id> pair passed by reference
-
-  // cast the void* master page into a Page_t
-  // for all the rows in #master
-    // create a <master_table_row_t> at BYTE OFFSET that will store the current record in #master
-    // if it is the table we want to find
-      // return the <master_table_row_t>
-      // set the RID <page_id> and <rec_id> @ idx
-    // else
-      // get the size of the current <master_table_row_t> and jump BYTE OFFSET forward that amount... to the next record
   master_table_row_t master_find_table(std::string tname, void* page, RID &rid);
 
-  // Get page of #master from buffer manager
-  // find entry for table_name in #master
-    // throw error if it doesnt exist 
-  // Get page of #columns from buffer manager
-  // put name, first_page, last_page from #master into table descriptor
-  // loop through all of the pages in the "columns" table
-    // find all entries of name in #columns and put them in col_types
   void read_table_descriptor(file_descriptor_t &dbfile, const std::string &table_name, table_descriptor_t &table_descr);
 
   void extend_table(file_descriptor_t &pfile, pg_locations_t &location);
 
   /* Create master record and append to "#master" and for each in <col_types>, create column record and append to "#columns" */
-  // get the #master page
-  // create empty void page buffer
-  // create empty string buffer
-  // pack the master record data into a string
-  // convert the td into a <master_table_row_t>
-  // insert the record for the <master_table_row_t>
-  // write the master page to the buffer pool
-
-  // get the #columns page
-  // loop through all the columns in <td>
-    // check that the #columns page has enough room, call extend table if needed
-    // write a record with a single column
-  // write the #columns page to the buffer pool
   void write_new_table_descriptor(file_descriptor_t &dbfile, const table_descriptor_t &td);
 
-
-  // if a table gets extended the last page will change and needs to be reflected in the master table
-  // if the type or def needs to change, they can be updated with this function too
   void write_updated_master_row(file_descriptor_t &dbfile, const master_table_row_t &td, RID rid);
 
   void tbl_pack_master_row(std::string &rec, const master_table_row_t &row);

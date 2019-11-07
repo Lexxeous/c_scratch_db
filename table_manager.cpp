@@ -85,13 +85,13 @@ namespace Table
 
   void print_master(file_descriptor_t &dbfile)
   {
-
+    return;
   }
 
 
   void print_table(file_descriptor_t &dbfile, const std::string &table_name)
   {
-
+    return;
   }
 
 
@@ -234,7 +234,7 @@ namespace Table
     return location.last_page; // return last page after extension
   }
 
-
+  // THIS FUNCTION WAS NOT SPEFICIED IN THE API!!!
   uint16_t extend(table_descriptor_t td)
   {
     std::cout << "I am inside extend() function" << std::endl;
@@ -494,12 +494,7 @@ namespace Table
     Buffer_mgr::buf_write(dbfile, TBL_COLUMNS_PAGE);
   }
 
-  // i have all the data to write to a master row
-  // get the master table page at <rid.page_id>
-  // get the dir = PAGE_DIRECTORY
-  // jump to the offset of dir[rec_id]
-  // traverse to <last_page>, <type>, and <def> and write the data
-    // must shift the records if <def> is not the same length...
+  
   void write_updated_master_row(file_descriptor_t &dbfile, const master_table_row_t &td, RID rid)
   {
     int16_t u = sizeof(uint16_t); // u = 2 ; for easy traversal of the current master record
