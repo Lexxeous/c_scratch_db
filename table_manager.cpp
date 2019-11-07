@@ -149,9 +149,7 @@ namespace Table
   {
     Page::Page_t* mstr_page = (Page::Page_t*)page;
     uint16_t* offset_arr = PG_DIRECTORY(page); // pointer to the beginning of the page directory
-
-    uint16_t* next_page = (uint16_t*)page; // next page in the master table linked list
-    std::cout << "Next page for the master table: " << *next_page << std::endl;
+    uint16_t* mstr_nxt_page = (uint16_t*)page; // next page in the master table linked list
 
     master_table_row_t mtr;
     for(int i = 0; i < mstr_page->dir_size; i++)
@@ -160,8 +158,6 @@ namespace Table
       std::string cur_tname = ""; // empty sting to store each table name
       std::string cur_def = ""; // empty string to store each definition
       int16_t u = sizeof(uint16_t); // u = 2 ; for easy traversal of the current master record
-
-      std::cout << "Byte offest of the current master record: " << offset_arr[i] << std::endl;
 
       uint16_t* cur_rec_len = (uint16_t*)((BYTE*)page + offset_arr[i]); // length of the current master record
       uint16_t* tname_val = (uint16_t*)((BYTE*)page + offset_arr[i] + u); // table name length + 9
@@ -176,7 +172,9 @@ namespace Table
       if(tname == cur_tname) // if current table name matches
         found = true; // found the table that we were looking for
       else
+      {
         continue; // not the table we were looking for, try the next one
+      }
 
       uint16_t* cur_first_page = (uint16_t*)((BYTE*)page + offset_arr[i] + (2*u) + tname_len + u); // pointer to the <first_page>
       uint16_t* cur_last_page = (uint16_t*)((BYTE*)page + offset_arr[i] + (2*u) + tname_len + (3*u)); // pointer to <last_page>
@@ -190,15 +188,6 @@ namespace Table
         cur_def += *(def_str + k); // append every character in <def>
       }
 
-      std::cout << "Length of Current Record: " << *cur_rec_len << std::endl;
-      std::cout << "Length of Current Table Name String: " << tname_len << std::endl;
-      std::cout << "Current Table Name: " << cur_tname << std::endl;
-      std::cout << "Current First Page: " << *cur_first_page << std::endl;
-      std::cout << "Current Last Page: " << *cur_last_page << std::endl;
-      std::cout << "Current Type: " << *cur_type << std::endl;
-      std::cout << "Length of the Current Definition String: " << def_len << std::endl;
-      std::cout << "Current Definition: " << cur_def << std::endl;
-
       if(found)
       {
         mtr.name = cur_tname;
@@ -206,9 +195,13 @@ namespace Table
         mtr.last_page = *cur_last_page;
         mtr.type = *cur_type;
         mtr.def = cur_def;
-        rid.page_id = 1; 
+        rid.page_id = 1; // I AM NOT LOOPING THROUGH ALL OF THE PAGES OF "#master" YET
         rid.rec_id = i;
         break; // stop searching
+      }
+      else
+      {
+        throw table_error("Table name not found in #master table.");
       }
     }
 
@@ -218,11 +211,73 @@ namespace Table
 
   void read_table_descriptor(file_descriptor_t &dbfile, const std::string &table_name, table_descriptor_t &table_descr)
   {
-    Page::Page_t* mstr_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE)); // get "#master ||[np]rec1|...|recN|E|F|"
+    int16_t u = sizeof(uint16_t); // u = 2 ; for easy traversal of the current record
+    RID rid;
 
+    void* mstr_page = (void*)Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE); // read the first page in the "#master" table
+    master_table_row_t mstr_row = master_find_table(table_name, mstr_page, rid); // assumes that you find the master row, would throw error otherwise
 
+    table_descr.name = mstr_row.name;
+    table_descr.first_page = mstr_row.first_page;
+    table_descr.last_page = mstr_row.last_page;
 
-    Page::Page_t* cols_page = static_cast<Page::Page_t*>(Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE)); // get "#columns |[np]|rec1|...|recN|E|F|"
+    void* cols_page = (void*)Buffer_mgr::buf_read(dbfile, TBL_COLUMNS_PAGE); // read the first "#columns" page
+    while(true)
+    {
+      Page::Page_t* alt_cols_page = (Page::Page_t*)cols_page;
+      uint16_t* cols_nxt_page = (uint16_t*)cols_page; // next page in the master table linked list
+
+      for(int i = 0; i < alt_cols_page->dir_size; i++) //loop through all records in the current columns page
+      {
+        std::string cur_tname = "";
+        std::string cur_cname = "";
+
+        uint16_t* offset_arr = PG_DIRECTORY(cols_page); // get the list of offsets for the current "#columns" page
+        uint16_t* tname_val = (uint16_t*)((BYTE*)cols_page + offset_arr[i] + u); // next page in the master table linked list
+        BYTE* tname_str = (BYTE*)((BYTE*)cols_page + offset_arr[i] + (2*u)); // pointer to the beginning of the table name
+
+        int tname_len = (*tname_val - Page::RTYPE_STRING);
+        for(int j = 0; j < tname_len; j++) // loop through every character in the table name
+        {
+          cur_tname += *(tname_str + j); // append every character in the table name
+        }
+
+        if(cur_tname == table_name) // if the table name matches
+        {
+          /* Then unpack all of the data: name, ord, type, and max_size */
+          uint16_t* cname_val = (uint16_t*)((BYTE*)cols_page + offset_arr[i] + (2*u) + tname_len);
+          BYTE* cname_str = (BYTE*)((BYTE*)cols_page + offset_arr[i] + (2*u) + tname_len + u); // pointer to the beginning of <cname>
+
+          int cname_len = (*cname_val - Page::RTYPE_STRING);
+          for(int k = 0; k < cname_len; k++) // loop through every character in <cname>
+          {
+            cur_cname += *(cname_str + k); // append every character in the <cname>
+          }
+
+          uint16_t* cur_ord = (uint16_t*)((BYTE*)cols_page + offset_arr[i] + (2*u) + tname_len + u + cname_len + u); // get the current record <ord>
+          uint16_t* cur_type = (uint16_t*)((BYTE*)cols_page + offset_arr[i] + (2*u) + tname_len + u + cname_len + (3*u)); // get the current record <type>
+          uint16_t* cur_mxsz = (uint16_t*)((BYTE*)cols_page + offset_arr[i] + (2*u) + tname_len + u + cname_len + (5*u)); // get the current record <max_size>
+
+          /* Populate <table_descr> with all of the unpacked values */
+          column_type_t cur_ct;
+          cur_ct.name = cur_cname;
+          cur_ct.ord = *cur_ord;
+          cur_ct.type = *cur_type;
+          cur_ct.max_size = *cur_mxsz;
+          table_descr.col_types.push_back(cur_ct);
+        }
+        else
+          continue; // go to the next record in "#columns" 
+      }
+      if(*cols_nxt_page == 0) // if last page in the "#columns" table
+      {
+        break; // break out of the while loop because we have already read the last page in the table
+      }
+      else
+      {
+        void* cols_page = (void*)Buffer_mgr::buf_read(dbfile, (int)(*cols_nxt_page)); // read the next "#columns" page
+      }
+    }
   }
 
 
@@ -297,7 +352,7 @@ namespace Table
     tbl_pack_master_row(mstr_str, mtr);
 
     // CANNOT EXTEND THE MASTER TABLE IF THERE ARE NO RECORDS FOR IT IN "#master" or "#columns"
-    if(false)//mstr_str.size() > mstr_page->free_bytes) // if record cannot fit in original "#master" page (page 1)
+    if(mstr_str.size() > mstr_page->free_bytes) // if record cannot fit in original "#master" page (page 1)
     {
       pg_locations_t mstr_pgl; // create new empty <page_locations_t> for master
       mstr_pgl.name = td.name; // the name for the new table (<tname>)
@@ -359,6 +414,7 @@ namespace Table
 
     *update_last_page = td.last_page; // assign updated value to the pointer location at <last_page>
     *update_type = td.type; // assign updated value to the pointer location at <type>
+    // NOT UPDATING THE DEFINITION YET
 
     Buffer_mgr::buf_write(dbfile, rid.page_id);
   }

@@ -66,6 +66,10 @@ int main(int argc, char* argv[])
 	// Page_file::print(pfile);
 
 	/******************************************** FINALIZE *****************************************/
+	const std::string table_name = "#columns";
+	Table::table_descriptor_t table_desc;
+
+	Table::read_table_descriptor(pfile, table_name, table_desc);
 
 	Buffer_mgr::shutdown(pfile);
 	Page_file::print(pfile);

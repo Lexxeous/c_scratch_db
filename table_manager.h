@@ -66,15 +66,6 @@ namespace Table
     uint16_t max_size;
   };
 
-  // struct master_type_t
-  // {
-  //   std::string name;
-  //   uint16_t fp;
-  //   uint16_t lp;
-  //   uint16_t type;
-  //   std::string def;
-  // };
-
   /* Structure that collects the first 3 variables from a record in the "#master" page */
   struct pg_locations_t
   {
@@ -97,11 +88,6 @@ namespace Table
     std::vector<column_type_t> col_types;
   };
 
-  // struct mstr_table_descriptor_t : public pg_locations_t
-  // {
-  //   std::vector<master_type_t> mstr_types;
-  // }
-
   /* ??? */
   struct col_def_t
   {
@@ -109,20 +95,6 @@ namespace Table
     uint16_t type;
     uint16_t size;
   };
-
-  // /* Struct defining a vector of "#master" table rows */
-  // struct master_table_t
-  // {  
-  //   using Page;
-  //   Page_t m_page;
-  // };
-
-  // /* Struct defining a vector of "#columns" table rows */
-  // struct columns_table_t
-  // {
-  //   using Page;
-  //   Page_t c_page;
-  // };
 }
 
 /******************************************* CONSTANTS *******************************************/
@@ -198,13 +170,12 @@ namespace Table
   master_table_row_t master_find_table(std::string tname, void* page, RID &rid);
 
   // Get page of #master from buffer manager
-  // convert to master_table_t
-  // find entry for table_name,
+  // find entry for table_name in #master
+    // throw error if it doesnt exist 
   // Get page of #columns from buffer manager
-  // create table_descriptor_t td
-  // put name, first_page, last_page from #master into td
-  // find all entries of name in #columns and put then in col_types
-  // (may need to read multiple pages)
+  // put name, first_page, last_page from #master into table descriptor
+  // loop through all of the pages in the "columns" table
+    // find all entries of name in #columns and put them in col_types
   void read_table_descriptor(file_descriptor_t &dbfile, const std::string &table_name, table_descriptor_t &table_descr);
 
   void extend_table(file_descriptor_t &pfile, pg_locations_t &location);
