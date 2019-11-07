@@ -115,7 +115,42 @@ namespace Table
 
   void create_table(file_descriptor_t &dbfile, const std::string &tname, const std::vector<col_def_t> &cols)
   {
+    /* Get free page list with format: |numpgs|pg|pg|pg|pg| */
+    Page_file::page_free_t* pgfree = static_cast<Page_file::page_free_t*>(Buffer_mgr::buf_read(dbfile, Page_file::PGF_PAGES_FREE_ID));
+    
+    if(pgfree->size == 0) // if the free pages list is empty
+      throw table_error("No free pages available.");
 
+    /* Get the last page_id in the list of free pages, and then delete it from the list */
+    uint16_t free_page_id = pgfree->free[pgfree->size - 1];
+    pgfree->size--;
+
+    Buffer_mgr::buf_write(dbfile, Page_file::PGF_PAGES_FREE_ID); // Buffer the free pages page to maintain the buffer pool
+
+    /* Create a new master table row for the new table */
+    master_table_row_t new_mtr;
+    new_mtr.name = tname;
+    new_mtr.first_page = free_page_id;
+    new_mtr.last_page = 0;
+
+    /* Pack all of the new table data and write to "#master" and "#columns" */
+    table_descriptor_t create_td;
+    create_td.name = new_mtr.name;
+    create_td.first_page = new_mtr.first_page;
+    create_td.last_page = new_mtr.last_page;
+    int cols_count = 0;
+    for (auto each : cols)
+    {
+      // |"tname"|"colname"|"ord"|"type"|"size"|
+      column_type_t cols_ct;
+      cols_ct.name = each.name; // column name
+      cols_ct.ord = cols_count;
+      cols_ct.type = each.type;
+      cols_ct.max_size = each.size;
+      create_td.col_types.push_back(cols_ct);
+      cols_count++;
+    }
+    write_new_table_descriptor(dbfile, create_td);
   }
 
 

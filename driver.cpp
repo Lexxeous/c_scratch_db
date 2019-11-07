@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 
 	/********************************* FORMAT THE DB FILE IN BINARY ********************************/
 
-	uint16_t ref_num = 6; // the number of pages for the DB file
+	uint16_t ref_num = 8; // the number of pages for the DB file
 	uint16_t &num_pages = ref_num;
 	Table::tbl_format(test_db_name, num_pages);
 
@@ -65,11 +65,38 @@ int main(int argc, char* argv[])
 	// // Buffer_mgr::print_lru_list();
 	// Page_file::print(pfile);
 
-	/******************************************** FINALIZE *****************************************/
+	/**************************************** READ TABLE DESCR *************************************/
+
 	const std::string table_name = "#columns";
 	Table::table_descriptor_t table_desc;
-
 	Table::read_table_descriptor(pfile, table_name, table_desc);
+
+	/***************************************** CREATE TABLE 0 **************************************/
+
+	const std::string create_table_name = "person";
+	std::vector<Table::col_def_t> columns;
+
+	Table::col_def_t col_1;
+	col_1.name = "first_name";
+	col_1.type = Table::TBL_TYPE_VCHAR;
+	col_1.size = 40;
+	columns.push_back(col_1);
+
+	Table::col_def_t col_2;
+	col_2.name = "last_name";
+	col_2.type = Table::TBL_TYPE_VCHAR;
+	col_2.size = 40;
+	columns.push_back(col_2);
+
+	Table::col_def_t col_3;
+	col_3.name = "age";
+	col_3.type = Table::TBL_TYPE_SHORT;
+	col_3.size = 1;
+	columns.push_back(col_3);
+
+	Table::create_table(pfile, create_table_name, columns);
+
+	/******************************************** FINALIZE *****************************************/
 
 	Buffer_mgr::shutdown(pfile);
 	Page_file::print(pfile);

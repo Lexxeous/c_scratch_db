@@ -88,7 +88,7 @@ namespace Table
     std::vector<column_type_t> col_types;
   };
 
-  /* ??? */
+  /* Structure that holds data necessary for creating a new table */
   struct col_def_t
   {
     std::string name;
