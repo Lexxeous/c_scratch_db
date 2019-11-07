@@ -37,43 +37,15 @@ int main(int argc, char* argv[])
 	std::fstream pfile; // define the DB file for reading and writing
 	pfile.open(test_db_name); // open the pages file
 
-	/************************************ SET UP RECORD #0 TO ADD **********************************/
-
-	// /* Create the string for the whole of record 0 */
-	// std::string s_0;
-
-	// /* Create integer data for record 0 */
-	// int addr_num_0 = 150;
-	// int zip_code_0 = 38501;
-	// int rec_0_page_num = 1;
-
-	// /* Create reference string(s) for string data for record 0 */
-	// std::string const_ref_s_0 = "abcdefghijklmnopqrstuvwxyz777"; // 29 characters long
-	// std::string &addr_str_0 = const_ref_s_0;
-
-	// /* Buffer and add record 0 on page 1*/
-	// page_buf = Buffer_mgr::buf_read(pfile, rec_0_page_num); // read empty page from disk (file) or cached page from <buf_pool>
-	// Page::rec_begin(s_0);
-	// Page::rec_packint(s_0, addr_num_0);
-	// Page::rec_packstr(s_0, addr_str_0);
-	// Page::rec_packint(s_0, zip_code_0);
-	// Page::rec_finish(s_0);
-	// uint16_t rec_id_0 = Page::pg_add_record(page_buf, (void*)s_0.data(), s_0.size()); // reclen = |2|2|4|2|29|2|4| ; L = 45
-	// std::cout << "Added record " << rec_id_0 << " to page " << rec_0_page_num << std::endl;
-
-	// Buffer_mgr::buf_write(pfile, rec_0_page_num); // set the dirty bit for page 1
-	// // Buffer_mgr::print_lru_list();
-	// Page_file::print(pfile);
-
 	/**************************************** READ TABLE DESCR *************************************/
 
 	const std::string table_name = "#columns";
 	Table::table_descriptor_t table_desc;
 	Table::read_table_descriptor(pfile, table_name, table_desc);
 
-	/***************************************** CREATE TABLE 0 **************************************/
+	/*************************************** CREATE PERSON TABLE ***********************************/
 
-	const std::string create_table_name = "person";
+	const std::string table_name_0 = "person";
 	std::vector<Table::col_def_t> columns;
 
 	Table::col_def_t col_1;
@@ -94,7 +66,70 @@ int main(int argc, char* argv[])
 	col_3.size = 1;
 	columns.push_back(col_3);
 
-	Table::create_table(pfile, create_table_name, columns);
+	Table::create_table(pfile, table_name_0, columns);
+
+	/*************************************** ADD TO PERSON TABLE ***********************************/
+
+	std::vector<Table::colval_t> vals_A;
+
+	Table::colval_t val_1;
+	val_1.first = "first_name";
+	val_1.second = "Joe";
+	vals_A.push_back(val_1);
+
+	Table::colval_t val_2;
+	val_2.first = "last_name";
+	val_2.second = "Smith";
+	vals_A.push_back(val_2);
+
+	Table::colval_t val_3;
+	val_3.first = "age";
+	val_3.second = "37";
+	vals_A.push_back(val_3);
+
+	Table::insert_into(pfile, table_name_0, vals_A);
+
+	/*************************************** ADD TO PERSON TABLE ***********************************/
+
+	std::vector<Table::colval_t> vals_B;
+
+	Table::colval_t val_4;
+	val_4.first = "first_name";
+	val_4.second = "Alex";
+	vals_B.push_back(val_4);
+
+	Table::colval_t val_5;
+	val_5.first = "last_name";
+	val_5.second = "Gibson";
+	vals_B.push_back(val_5);
+
+	Table::colval_t val_6;
+	val_6.first = "age";
+	val_6.second = "23";
+	vals_B.push_back(val_6);
+
+	Table::insert_into(pfile, table_name_0, vals_B);
+
+	/*************************************** ADD TO PERSON TABLE ***********************************/
+
+	std::vector<Table::colval_t> vals_C;
+
+	Table::colval_t val_7;
+	val_7.first = "first_name";
+	val_7.second = "Another";
+	vals_C.push_back(val_7);
+
+	Table::colval_t val_8;
+	val_8.first = "last_name";
+	val_8.second = "One";
+	vals_C.push_back(val_8);
+
+	Table::colval_t val_9;
+	val_9.first = "age";
+	val_9.second = "999";
+	vals_C.push_back(val_9);
+
+	Table::insert_into(pfile, table_name_0, vals_C);
 
 	/******************************************** FINALIZE *****************************************/
 

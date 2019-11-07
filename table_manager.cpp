@@ -17,7 +17,69 @@ namespace Table
 {
   void insert_into(file_descriptor_t &dbfile, const std::string &table_name, std::vector<colval_t> values)
   {
+    std::cout << "\nAdding record to table \"" << table_name << "\"..." << std::endl;
 
+    RID rid;
+    void* mstr_page = (void*)Buffer_mgr::buf_read(dbfile, TBL_MASTER_PAGE);
+    master_table_row_t mtr = master_find_table(table_name, mstr_page, rid);
+
+    table_descriptor_t td;
+    read_table_descriptor(dbfile, table_name, td);
+
+    pg_locations_t pgl;
+    pgl.name = td.name;
+    pgl.first_page = td.first_page;
+    pgl.last_page = td.last_page;
+
+    std::string rec;
+    Page::rec_begin(rec);
+
+    for(int v = 0; v < values.size(); v++)
+    {
+      for(int i = 0; i < td.col_types.size(); i++)
+      {
+        if(values[v].first == td.col_types[i].name) // if we find the proper column
+        {
+          if(td.col_types[i].type == Page::RTYPE_STRING) // the column datatype is a string
+          {
+            Page::rec_packstr(rec, values[v].second);
+            std::cout << "string: " << values[v].second << std::endl;
+            break;
+          }
+          else if(td.col_types[i].type == Page::RTYPE_SHORT) // if the type is a short
+          {
+            std::stringstream ss;
+            int16_t col_short;
+            ss << values[v].second;
+            ss >> col_short;
+            Page::rec_packshort(rec, col_short);
+            std::cout << "short: " << col_short << std::endl;
+            break;
+          }
+          else if(td.col_types[i].type == Page::RTYPE_INT) // if the type is an int
+          {
+            std::stringstream ss;
+            int col_int;
+            ss << values[v].second;
+            ss >> col_int;
+            Page::rec_packint(rec, col_int);
+            std::cout << "int: " << col_int << std::endl;
+            break;
+          }
+        }
+      }
+    }
+
+    Page::rec_finish(rec);
+    std::cout << "Record Length: " << rec.length() << std::endl;
+
+    uint16_t pg_loc = rec_find_free(dbfile, pgl, rec.length());
+    std::cout << "On Page: " << pg_loc << std::endl;
+
+    void* add_rec_page = (void*)Buffer_mgr::buf_read(dbfile, pg_loc);
+    uint16_t rec_idx = Page::pg_add_record(add_rec_page, (void*)rec.data(), rec.length());
+    Buffer_mgr::buf_write(dbfile, pg_loc);
+    std::cout << "Record Index: " << rec_idx << std::endl << std::endl;
   }
 
 
@@ -131,7 +193,7 @@ namespace Table
     master_table_row_t new_mtr;
     new_mtr.name = tname;
     new_mtr.first_page = free_page_id;
-    new_mtr.last_page = 0;
+    new_mtr.last_page = free_page_id;
 
     /* Pack all of the new table data and write to "#master" and "#columns" */
     table_descriptor_t create_td;

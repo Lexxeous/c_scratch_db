@@ -9,6 +9,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include <climits>
 #include <stdexcept>

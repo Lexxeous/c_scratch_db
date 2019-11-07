@@ -120,7 +120,7 @@ namespace Table
 
 namespace Table
 {
-  typedef std::pair<std::string, std::string> colval_t;
+  typedef std::pair<std::string, std::string> colval_t; // used for the "insert_into()" function
 }
 
 namespace Table
