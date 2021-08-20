@@ -1,7 +1,5 @@
 driver
 test_db.dat
 page_buf.dat
-README
-README.txt
-
+*.zip
 .extras/

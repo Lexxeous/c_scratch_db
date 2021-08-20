@@ -2,7 +2,7 @@
 
 #include "paging/paging.h"
 #include "buffer_mgr/buffer_mgr.h"
-#include "table_manager.h"
+#include "table_mgr/table_mgr.h"
 
 /************************************** DRIVER IMPLEMENTATION ************************************/
 

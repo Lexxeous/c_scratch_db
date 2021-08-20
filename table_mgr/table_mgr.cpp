@@ -8,8 +8,8 @@
 
 /****************************************** HEADER FILES *****************************************/
 
-#include "table_manager.h"
-#include "buffer_mgr/buffer_mgr.h"
+#include "table_mgr.h"
+#include "../buffer_mgr/buffer_mgr.h"
 
 /************************************ FUNCTION IMPLEMENTATIONS ***********************************/
 
